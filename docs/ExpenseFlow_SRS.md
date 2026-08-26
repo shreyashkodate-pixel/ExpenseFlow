@@ -160,12 +160,6 @@ backend/
 
 ### 4.2 Backend `.env.example`
 ```env
-# --- App ---
-APP_ENV=development                # development | production
-APP_DEBUG=true
-APP_NAME=ExpenseFlow API
-API_V1_PREFIX=/api/v1
-
 # --- Database ---
 DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/expenseflow
 # In production (Supabase): postgresql+psycopg://<user>:<pass>@<supabase-host>:5432/postgres
@@ -173,11 +167,8 @@ DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/expenseflow
 # --- CORS ---
 CORS_ORIGINS=http://localhost:3000
 # In production: https://your-app.vercel.app
-
-# --- Misc ---
-LOG_LEVEL=info
-SEED_ON_STARTUP=false              # true only for fresh dev DB
 ```
+*(Note: All other settings like `APP_NAME`, `API_V1_PREFIX`, `APP_ENV`, `SEED_ON_STARTUP`, and `LOG_LEVEL` have sensible default values in `app/core/config.py` and can be overridden via environment variables if needed.)*
 
 ### 4.3 Configuration Loading
 - `config.py` uses `pydantic-settings.BaseSettings` to read all values from environment (loaded from `.env` via `python-dotenv` locally; via platform env vars on Render).
