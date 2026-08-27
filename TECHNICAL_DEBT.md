@@ -52,5 +52,5 @@ This document lists all pending implementation tasks and technical debt items to
 ---
 
 ### 6. Automated Testing & Verification
-- [x] Write unit tests under `backend/tests/` (`test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`) covering CRUD, search, pagination, category reassignment, budget alert rules, and exports (8/8 tests passing).
+- [x] Write unit tests under `backend/tests/` (`test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`, `test_analytics.py`) covering CRUD, search, pagination, category reassignment, budget alert rules, analytics, and exports (11/11 tests passing, 0 Pyright errors).
 - [ ] Perform end-to-end frontend integration test.

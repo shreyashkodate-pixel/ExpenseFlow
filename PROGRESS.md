@@ -1,6 +1,6 @@
 # ExpenseFlow — Progress Log
 
-**Last Updated:** August 26, 2026
+**Last Updated:** August 27, 2026
 
 ---
 
@@ -38,7 +38,7 @@ Bootstrapped clean directory structure without clutter:
   - Root [`/.gitignore`](file:///Users/apple/Documents/Projects/ExpenseFlow/.gitignore)
   - Backend [`backend/.gitignore`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/.gitignore)
   - Frontend [`frontend/.gitignore`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/.gitignore)
-- Staged, committed, and pushed all progress to GitHub (`origin/main`).
+- Staged, committed, and pushed all progress to GitHub (`origin/feature/database-setup`).
 
 ---
 
@@ -47,7 +47,7 @@ Bootstrapped clean directory structure without clutter:
   - Implemented [`backend/app/core/config.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/core/config.py): Environment configuration via `pydantic-settings` (`DATABASE_URL`, `CORS_ORIGINS`, `API_V1_PREFIX`, `SEED_ON_STARTUP`, `LOG_LEVEL`).
   - Implemented [`backend/app/core/database.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/core/database.py): SQLAlchemy engine, session maker (`SessionLocal`), declarative base (`Base`), and `get_db()` generator dependency.
 - **SQLAlchemy ORM Models**:
-  - [`Category`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/models/category.py): `id`, `name` (unique, indexed), `created_at`.
+  - [`Category`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/models/category.py): `id`, `name` (unique, indexed), `created_at` (using SQLAlchemy 2.0 `Mapped` annotations).
   - [`Expense`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/models/expense.py): `id`, `amount` (`Check(amount > 0)`), `category_id` (`FK -> categories.id ON DELETE RESTRICT`), `description`, `notes`, `date`, `payment_method`, `created_at`, `updated_at`.
   - [`Budget`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/models/budget.py): `id`, `month` (`Check(1..12)`), `year`, `amount` (`Check(amount > 0)`), `category_id` (`FK -> categories.id ON DELETE CASCADE` nullable), `created_at`, `updated_at`.
   - Centralized exports in [`backend/app/models/__init__.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/models/__init__.py).
@@ -61,7 +61,7 @@ Bootstrapped clean directory structure without clutter:
 
 ---
 
-### 6. Backend REST API Layer & Automated Testing (August 27, 2026)
+### 6. Backend REST API Layer, Static Analysis & Automated Testing (August 27, 2026)
 - **Core Exceptions & Shared Schemas**:
   - Implemented [`backend/app/schemas/common.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/schemas/common.py): `ErrorResponse` and generic `PaginatedResponse[T]`.
   - Implemented [`backend/app/core/exceptions.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/core/exceptions.py): Custom exceptions (`AppException`, `ResourceNotFoundException`, `BadRequestException`) and FastAPI global exception handler.
@@ -79,7 +79,9 @@ Bootstrapped clean directory structure without clutter:
   - [`health.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/health.py): Health check with live PostgreSQL `SELECT 1` ping (`/api/v1/health` and unversioned `/health`).
   - [`export_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/export_service.py): CSV string generation and ReportLab PDF document builder.
   - [`main.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/main.py): FastAPI app with CORS middleware, lifespan startup category seeder, and router composition.
-- **Automated Test Suite**:
-  - Configured `pytest` suite in [`backend/tests/`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/tests) (`conftest.py`, `test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`).
-  - All **8/8 unit tests passed** in 0.51s.
+- **Verification, Pyright & Pytest**:
+  - **Pyright Static Type Checker**: 0 errors, 0 warnings.
+  - **Automated Test Suite**: Configured `pytest` suite in [`backend/tests/`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/tests) (`conftest.py`, `test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`, `test_analytics.py`). All **11/11 unit tests passed** in 0.54s.
+  - **Live API Endpoint Verification**: Verified all endpoints live against running server on port 8000 returning HTTP 200/201 status codes.
+
 
