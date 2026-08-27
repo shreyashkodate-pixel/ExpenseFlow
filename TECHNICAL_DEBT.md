@@ -1,6 +1,6 @@
 # ExpenseFlow — Pending Work & Technical Roadmap
 
-**Last Updated:** August 26, 2026
+**Last Updated:** August 27, 2026
 
 This document lists all pending implementation tasks and technical debt items to resume work seamlessly in the next session.
 
@@ -19,7 +19,7 @@ This document lists all pending implementation tasks and technical debt items to
   - `Category` (`id`, `name`, `created_at`)
   - `Expense` (`id`, `amount`, `category_id`, `description`, `notes`, `date`, `payment_method`, `created_at`, `updated_at`)
   - `Budget` (`id`, `month`, `year`, `amount`, `category_id`, `timestamps`)
-- [ ] Create Pydantic schemas for request validation & API responses (`ExpenseCreate`, `ExpenseResponse`, `CategoryCreate`, `CategoryResponse`, `BudgetCreate`, `BudgetResponse`).
+- [x] Create Pydantic schemas for request validation & API responses (`ExpenseCreate`, `ExpenseResponse`, `CategoryCreate`, `CategoryResponse`, `BudgetCreate`, `BudgetResponse`, `DashboardSummaryResponse`, `DailyAnalyticsResponse`, `MonthlyAnalyticsResponse`, `YearlyAnalyticsResponse`, `PaginatedResponse`, `ErrorResponse`).
 
 ---
 
@@ -30,12 +30,12 @@ This document lists all pending implementation tasks and technical debt items to
 ---
 
 ### 4. Services & API Routers (`backend/app/services/` & `backend/app/routers/v1/`)
-- [ ] Implement `services/expense_service.py` & `routers/v1/expenses.py` (CRUD + Search, Filter, Sort, Pagination).
-- [ ] Implement `services/category_service.py` & `routers/v1/categories.py` (CRUD + In-use deletion protection/reassignment).
-- [ ] Implement `services/budget_service.py` & `routers/v1/budgets.py` (Monthly/Per-category budget tracking & remaining balance calculation).
-- [ ] Implement `services/analytics_service.py` & `routers/v1/analytics.py` (Daily, monthly, yearly trends, top categories).
-- [ ] Implement `services/export_service.py` (`/api/v1/expenses/export?format=csv|pdf` file generation via ReportLab / CSV writer).
-- [ ] Implement `/api/v1/health` endpoint.
+- [x] Implement `services/expense_service.py` & `routers/v1/expenses.py` (CRUD + Search, Filter, Sort, Pagination).
+- [x] Implement `services/category_service.py` & `routers/v1/categories.py` (CRUD + In-use deletion protection/reassignment).
+- [x] Implement `services/budget_service.py` & `routers/v1/budgets.py` (Monthly/Per-category budget tracking & remaining balance calculation).
+- [x] Implement `services/analytics_service.py` & `routers/v1/analytics.py` & `routers/v1/dashboard.py` (Daily, monthly, yearly trends, top categories, single-call dashboard summary).
+- [x] Implement `services/export_service.py` (`/api/v1/expenses/export?format=csv|pdf` file generation via ReportLab / CSV writer).
+- [x] Implement `/api/v1/health` and `/health` endpoints.
 
 ---
 
@@ -52,5 +52,5 @@ This document lists all pending implementation tasks and technical debt items to
 ---
 
 ### 6. Automated Testing & Verification
-- [ ] Write unit tests under `backend/tests/` for Expense CRUD, category reassignment, and budget alert rules.
-- [ ] Perform end-to-end integration test.
+- [x] Write unit tests under `backend/tests/` (`test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`) covering CRUD, search, pagination, category reassignment, budget alert rules, and exports (8/8 tests passing).
+- [ ] Perform end-to-end frontend integration test.
