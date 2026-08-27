@@ -174,7 +174,7 @@ def get_monthly_analytics(db: Session, month: int, year: int) -> MonthlyAnalytic
         or 0
     )
 
-    # 2. Daily breakdown
+    # 2. Daily breakdown for all calendar days of the month
     daily_results = (
         db.query(
             Expense.date,
@@ -186,14 +186,31 @@ def get_monthly_analytics(db: Session, month: int, year: int) -> MonthlyAnalytic
             extract("year", Expense.date) == year,
         )
         .group_by(Expense.date)
-        .order_by(Expense.date.asc())
         .all()
     )
 
-    daily_breakdown = [
-        DailySpendingItem(date=r.date, amount=r.amount, expense_count=r.expense_count)
-        for r in daily_results
-    ]
+    daily_map = {r.date: r for r in daily_results}
+    num_days = calendar.monthrange(year, month)[1]
+    daily_breakdown = []
+
+    for day in range(1, num_days + 1):
+        d_date = date_type(year, month, day)
+        if d_date in daily_map:
+            daily_breakdown.append(
+                DailySpendingItem(
+                    date=d_date,
+                    amount=daily_map[d_date].amount,
+                    expense_count=daily_map[d_date].expense_count,
+                )
+            )
+        else:
+            daily_breakdown.append(
+                DailySpendingItem(
+                    date=d_date,
+                    amount=Decimal("0.00"),
+                    expense_count=0,
+                )
+            )
 
     # 3. Category breakdown
     by_category = get_category_analytics(db, month=month, year=year)

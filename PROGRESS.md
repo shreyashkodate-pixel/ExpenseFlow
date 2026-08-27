@@ -84,4 +84,29 @@ Bootstrapped clean directory structure without clutter:
   - **Automated Test Suite**: Configured `pytest` suite in [`backend/tests/`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/tests) (`conftest.py`, `test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`, `test_analytics.py`). All **11/11 unit tests passed** in 0.54s.
   - **Live API Endpoint Verification**: Verified all endpoints live against running server on port 8000 returning HTTP 200/201 status codes.
 
+---
+
+### 7. Frontend Application Development & Next.js Integration (August 27, 2026)
+- **Global Design System & Styling**:
+  - Implemented [`frontend/styles/globals.css`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/styles/globals.css): Custom CSS variables, dark mode theme palette, glassmorphism panel styles (`.glass-panel`, `.glass-card`), gradient accents, and styled scrollbars.
+  - Implemented [`frontend/app/layout.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/layout.tsx): Root layout with Inter font, fixed sidebar navigation shell, and global Toast notification context provider.
+- **TypeScript Data Layer & Centralized API Client**:
+  - Implemented [`frontend/types/index.ts`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/types/index.ts): TypeScript interfaces matching FastAPI schemas (`Expense`, `Category`, `Budget`, `DashboardSummary`, `PaginatedResponse`).
+  - Implemented [`frontend/lib/api/client.ts`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/lib/api/client.ts): Type-safe `fetch` wrapper handling errors and blob downloads for file exports.
+  - Implemented domain API modules ([`expenses.ts`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/lib/api/expenses.ts), [`categories.ts`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/lib/api/categories.ts), [`budgets.ts`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/lib/api/budgets.ts), [`analytics.ts`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/lib/api/analytics.ts)).
+- **Custom React Hooks**:
+  - [`useExpenses`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/hooks/useExpenses.ts): Live searching, filtering, pagination, optimistic CRUD, and export streams.
+  - [`useCategories`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/hooks/useCategories.ts): Dynamic category lists and expense count metadata.
+  - [`useBudget`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/hooks/useBudget.ts): Real-time budget status alerts and cap updates.
+- **UI Components & Pages**:
+  - Primitives: `Button`, `Card`, `Input`, `Select`, `Modal`, `ToastProvider`.
+  - Navigation: `Sidebar` and `Header` with live online indicator badge.
+  - Pages:
+    - Dashboard ([`frontend/app/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/page.tsx))
+    - Expense Tracker ([`frontend/app/expenses/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/expenses/page.tsx))
+    - Analytics ([`frontend/app/analytics/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/analytics/page.tsx))
+    - Budget Goals ([`frontend/app/budget/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/budget/page.tsx))
+    - Settings ([`frontend/app/settings/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/settings/page.tsx))
+
+
 

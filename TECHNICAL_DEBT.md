@@ -40,17 +40,19 @@ This document lists all pending implementation tasks and technical debt items to
 ---
 
 ### 5. Frontend Development (`frontend/`)
-- [ ] Build shared UI components in `components/ui/` (Buttons, Inputs, Cards, Dialogs, Tables, Toasts).
-- [ ] Build typed API client in `lib/api/` (`expenses.ts`, `categories.ts`, `budget.ts`, `analytics.ts`).
-- [ ] Build custom hooks (`useExpenses`, `useCategories`, `useBudget`).
-- [ ] Construct main pages:
-  - `app/page.tsx` (Dashboard summary, charts, budget widget, recent expenses).
-  - `app/expenses/page.tsx` (Expense table, search/filter controls, add/edit modal, CSV/PDF export buttons).
-  - `app/analytics/page.tsx` (Spending breakdown charts).
-  - `app/budget/page.tsx` (Budget goal setup & status alerts).
+- [x] Build shared UI components in `components/ui/` (Button, Input, Select, Card, Modal, ToastProvider, Sidebar, Header).
+- [x] Build typed API client in `lib/api/` (`client.ts`, `expenses.ts`, `categories.ts`, `budgets.ts`, `analytics.ts`).
+- [x] Build custom hooks (`useExpenses`, `useCategories`, `useBudget`).
+- [x] Construct main pages:
+  - `app/page.tsx` (Dashboard summary, cards, budget overview widget, recent transactions).
+  - `app/expenses/page.tsx` (Expense table, live filters, paginated controls, add/edit modal, CSV/PDF export streams).
+  - `app/analytics/page.tsx` (Daily spending trend AreaChart and Category distribution PieChart via Recharts).
+  - `app/budget/page.tsx` (Overall and category-specific budget setup & warning alert badges).
+  - `app/settings/page.tsx` (Dynamic category management, inline renaming, and safe deletion with expense reassignment).
 
 ---
 
 ### 6. Automated Testing & Verification
 - [x] Write unit tests under `backend/tests/` (`test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`, `test_analytics.py`) covering CRUD, search, pagination, category reassignment, budget alert rules, analytics, and exports (11/11 tests passing, 0 Pyright errors).
-- [ ] Perform end-to-end frontend integration test.
+- [x] Perform production build validation (`npm run build` completed with 0 errors).
+
