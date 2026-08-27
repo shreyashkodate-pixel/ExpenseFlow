@@ -9,13 +9,13 @@ This document lists all pending implementation tasks and technical debt items to
 ## 📋 Pending Tasks & Action Plan
 
 ### 1. Backend Core Setup (`backend/app/core/`)
-- [ ] Implement `core/config.py`: Load `DATABASE_URL` and `CORS_ORIGINS` from `.env` via `pydantic-settings.BaseSettings`, with sensible code defaults for optional parameters (`API_V1_PREFIX`, `APP_NAME`, `APP_ENV`, `SEED_ON_STARTUP`, `LOG_LEVEL`).
-- [ ] Implement `core/database.py`: Configure SQLAlchemy engine, session maker, and DB dependency `get_db()`.
+- [x] Implement `core/config.py`: Load `DATABASE_URL` and `CORS_ORIGINS` from `.env` via `pydantic-settings.BaseSettings`, with sensible code defaults for optional parameters (`API_V1_PREFIX`, `APP_NAME`, `APP_ENV`, `SEED_ON_STARTUP`, `LOG_LEVEL`).
+- [x] Implement `core/database.py`: Configure SQLAlchemy engine, session maker, and DB dependency `get_db()`.
 
 ---
 
 ### 2. Models & Schemas (`backend/app/models/` & `backend/app/schemas/`)
-- [ ] Create SQLAlchemy ORM models:
+- [x] Create SQLAlchemy ORM models:
   - `Category` (`id`, `name`, `created_at`)
   - `Expense` (`id`, `amount`, `category_id`, `description`, `notes`, `date`, `payment_method`, `created_at`, `updated_at`)
   - `Budget` (`id`, `month`, `year`, `amount`, `category_id`, `timestamps`)
@@ -24,8 +24,8 @@ This document lists all pending implementation tasks and technical debt items to
 ---
 
 ### 3. Database Migrations & Seeding (`backend/alembic/` & `backend/app/seed/`)
-- [ ] Initialize Alembic migration scripts for initial database tables.
-- [ ] Implement `seed/seed_data.py`: Idempotent script to seed default categories (*Food, Transport, Rent, Shopping, Bills, Entertainment, Health, Education, Other*) in DB on first startup.
+- [x] Initialize Alembic migration scripts for initial database tables (`48cef29c36e8_initial_schema`).
+- [x] Implement `seed/seed_data.py`: Idempotent script to seed default categories (*Food, Transport, Rent, Shopping, Bills, Entertainment, Health, Education, Other*) in DB on first startup.
 
 ---
 
