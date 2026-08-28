@@ -1,12 +1,12 @@
 # ExpenseFlow — Pending Work & Technical Roadmap
 
-**Last Updated:** August 27, 2026
+**Last Updated:** August 28, 2026
 
-This document lists all pending implementation tasks and technical debt items to resume work seamlessly in the next session.
+This document tracks completed tasks and technical roadmap items for ExpenseFlow.
 
 ---
 
-## 📋 Pending Tasks & Action Plan
+## 📋 Completed Tasks & Roadmap Verification
 
 ### 1. Backend Core Setup (`backend/app/core/`)
 - [x] Implement `core/config.py`: Load `DATABASE_URL` and `CORS_ORIGINS` from `.env` via `pydantic-settings.BaseSettings`, with sensible code defaults for optional parameters (`API_V1_PREFIX`, `APP_NAME`, `APP_ENV`, `SEED_ON_STARTUP`, `LOG_LEVEL`).
@@ -39,20 +39,21 @@ This document lists all pending implementation tasks and technical debt items to
 
 ---
 
-### 5. Frontend Development (`frontend/`)
+### 5. Frontend Development & Styling Pipeline (`frontend/`)
+- [x] Configure Tailwind CSS & PostCSS build pipeline (`postcss.config.js`, `tailwind.config.js`, `@tailwind` directives in `globals.css`).
 - [x] Build shared UI components in `components/ui/` (Button, Input, Select, Card, Modal, ToastProvider, Sidebar, Header).
 - [x] Build typed API client in `lib/api/` (`client.ts`, `expenses.ts`, `categories.ts`, `budgets.ts`, `analytics.ts`).
 - [x] Build custom hooks (`useExpenses`, `useCategories`, `useBudget`).
-- [x] Construct main pages:
-  - `app/page.tsx` (Dashboard summary, cards, budget overview widget, recent transactions).
-  - `app/expenses/page.tsx` (Expense table, live filters, paginated controls, add/edit modal, CSV/PDF export streams).
-  - `app/analytics/page.tsx` (Daily spending trend AreaChart and Category distribution PieChart via Recharts).
+- [x] Construct main pages with fintech SaaS dark design system & animations:
+  - `app/page.tsx` (Dashboard summary, hero KPI cards, budget overview widget, recent transactions).
+  - `app/expenses/page.tsx` (Expense table, live filters, paginated controls, add/edit modal with payment method cards, CSV/PDF export streams).
+  - `app/analytics/page.tsx` (Daily spending trend Area/Bar chart and Category distribution active sector PieChart via Recharts with entrance animations).
   - `app/budget/page.tsx` (Overall and category-specific budget setup & warning alert badges).
   - `app/settings/page.tsx` (Dynamic category management, inline renaming, and safe deletion with expense reassignment).
 
 ---
 
-### 6. Automated Testing & Verification
+### 6. Automated Testing, Static Analysis & Git History
 - [x] Write unit tests under `backend/tests/` (`test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`, `test_analytics.py`) covering CRUD, search, pagination, category reassignment, budget alert rules, analytics, and exports (11/11 tests passing, 0 Pyright errors).
-- [x] Perform production build validation (`npm run build` completed with 0 errors).
-
+- [x] Perform production build validation (`npm run build` completed 8/8 static pages with 0 errors, `npm run lint` 0 warnings/errors).
+- [x] Commit (`f98b08f`) and push all code changes to `origin/feature/database-setup`.
