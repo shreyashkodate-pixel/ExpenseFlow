@@ -1,59 +1,61 @@
 # ExpenseFlow — Pending Work & Technical Roadmap
 
-**Last Updated:** August 28, 2026
+**Last Updated:** August 29, 2026
 
-This document tracks completed tasks and technical roadmap items for ExpenseFlow.
-
----
-
-## 📋 Completed Tasks & Roadmap Verification
-
-### 1. Backend Core Setup (`backend/app/core/`)
-- [x] Implement `core/config.py`: Load `DATABASE_URL` and `CORS_ORIGINS` from `.env` via `pydantic-settings.BaseSettings`, with sensible code defaults for optional parameters (`API_V1_PREFIX`, `APP_NAME`, `APP_ENV`, `SEED_ON_STARTUP`, `LOG_LEVEL`).
-- [x] Implement `core/database.py`: Configure SQLAlchemy engine, session maker, and DB dependency `get_db()`.
+This document tracks completed features, system architecture status, and technical roadmap items for ExpenseFlow.
 
 ---
 
-### 2. Models & Schemas (`backend/app/models/` & `backend/app/schemas/`)
-- [x] Create SQLAlchemy ORM models:
-  - `Category` (`id`, `name`, `created_at`)
-  - `Expense` (`id`, `amount`, `category_id`, `description`, `notes`, `date`, `payment_method`, `created_at`, `updated_at`)
-  - `Budget` (`id`, `month`, `year`, `amount`, `category_id`, `timestamps`)
-- [x] Create Pydantic schemas for request validation & API responses (`ExpenseCreate`, `ExpenseResponse`, `CategoryCreate`, `CategoryResponse`, `BudgetCreate`, `BudgetResponse`, `DashboardSummaryResponse`, `DailyAnalyticsResponse`, `MonthlyAnalyticsResponse`, `YearlyAnalyticsResponse`, `PaginatedResponse`, `ErrorResponse`).
+## 📋 Completed Core Tasks
+
+### 1. Backend Core & Database (`backend/app/core/`, `models/`, `seed/`, `alembic/`)
+- [x] Configured environment variables via `pydantic-settings` (`DATABASE_URL`, `CORS_ORIGINS`, `API_V1_PREFIX`).
+- [x] Implemented SQLAlchemy engine, declarative models (`Category`, `Expense`, `Budget`), and session dependencies.
+- [x] Executed Alembic database migration (`48cef29c36e8_initial_schema`) with automatic seeding on startup.
+- [x] Configured Supabase PostgreSQL production cloud database with connection pooling.
 
 ---
 
-### 3. Database Migrations & Seeding (`backend/alembic/` & `backend/app/seed/`)
-- [x] Initialize Alembic migration scripts for initial database tables (`48cef29c36e8_initial_schema`).
-- [x] Implement `seed/seed_data.py`: Idempotent script to seed default categories (*Food, Transport, Rent, Shopping, Bills, Entertainment, Health, Education, Other*) in DB on first startup.
+### 2. Services & API Layer (`backend/app/services/` & `routers/v1/`)
+- [x] Paginated Expense CRUD with multi-field search, date/category/amount/method filtering, and sorting.
+- [x] Category CRUD with in-use reassignment protection (`?reassign_to=`).
+- [x] Monthly and Category-specific budget limits with real-time status utilization calculation (`on_track`, `warning`, `exceeded`).
+- [x] Daily, Monthly, and Yearly analytics aggregations with continuous calendar-day breakdowns.
+- [x] CSV and PDF expense report export streams via ReportLab.
+- [x] Configured Starlette CORS regex matching Vercel and Render dynamic production & preview domains.
 
 ---
 
-### 4. Services & API Routers (`backend/app/services/` & `backend/app/routers/v1/`)
-- [x] Implement `services/expense_service.py` & `routers/v1/expenses.py` (CRUD + Search, Filter, Sort, Pagination).
-- [x] Implement `services/category_service.py` & `routers/v1/categories.py` (CRUD + In-use deletion protection/reassignment).
-- [x] Implement `services/budget_service.py` & `routers/v1/budgets.py` (Monthly/Per-category budget tracking & remaining balance calculation).
-- [x] Implement `services/analytics_service.py` & `routers/v1/analytics.py` & `routers/v1/dashboard.py` (Daily, monthly, yearly trends, top categories, single-call dashboard summary).
-- [x] Implement `services/export_service.py` (`/api/v1/expenses/export?format=csv|pdf` file generation via ReportLab / CSV writer).
-- [x] Implement `/api/v1/health` and `/health` endpoints.
+### 3. Frontend Architecture, UI & Design System (`frontend/`)
+- [x] Next.js 14 App Router layout with `Plus Jakarta Sans` typography and responsive viewport configuration.
+- [x] Dual-mode Light & Dark theme system (`next-themes`, `ThemeToggle`, reactive `.glass-panel` and `.glass-card` styling).
+- [x] Full multi-device responsiveness:
+  - Mobile top app bar (`MobileNav.tsx`) with animated slide-over menu drawer (`Sidebar.tsx`).
+  - Mobile stacked glass transaction cards + tablet/desktop horizontal overflow data tables.
+  - Keyboard-safe scrollable modal dialogs (`max-h-[90vh] overflow-y-auto`).
+  - Responsive Recharts analytics charts with adaptive radiuses and height breakpoints.
+- [x] Progressive Web App (PWA) setup:
+  - Web App Manifest (`manifest.json`) for standalone native-like mobile execution.
+  - Offline Service Worker (`sw.js`).
+  - In-app install banner, sidebar install button, and iOS Home Screen guidance modal.
 
 ---
 
-### 5. Frontend Development & Styling Pipeline (`frontend/`)
-- [x] Configure Tailwind CSS & PostCSS build pipeline (`postcss.config.js`, `tailwind.config.js`, `@tailwind` directives in `globals.css`).
-- [x] Build shared UI components in `components/ui/` (Button, Input, Select, Card, Modal, ToastProvider, Sidebar, Header).
-- [x] Build typed API client in `lib/api/` (`client.ts`, `expenses.ts`, `categories.ts`, `budgets.ts`, `analytics.ts`).
-- [x] Build custom hooks (`useExpenses`, `useCategories`, `useBudget`).
-- [x] Construct main pages with fintech SaaS dark design system & animations:
-  - `app/page.tsx` (Dashboard summary, hero KPI cards, budget overview widget, recent transactions).
-  - `app/expenses/page.tsx` (Expense table, live filters, paginated controls, add/edit modal with payment method cards, CSV/PDF export streams).
-  - `app/analytics/page.tsx` (Daily spending trend Area/Bar chart and Category distribution active sector PieChart via Recharts with entrance animations).
-  - `app/budget/page.tsx` (Overall and category-specific budget setup & warning alert badges).
-  - `app/settings/page.tsx` (Dynamic category management, inline renaming, and safe deletion with expense reassignment).
+### 4. Containerization & Production Deployment
+- [x] Backend Docker container (`python:3.11-slim`) with automated Alembic migration runner.
+- [x] Frontend multi-stage Docker container (`node:20-alpine`) with non-root security execution.
+- [x] Root `docker-compose.yml` for unified local/production orchestration.
+- [x] Live cloud deployments on Render (FastAPI) and Vercel (Next.js).
 
 ---
 
-### 6. Automated Testing, Static Analysis & Git History
-- [x] Write unit tests under `backend/tests/` (`test_health.py`, `test_categories.py`, `test_expenses.py`, `test_budgets.py`, `test_analytics.py`) covering CRUD, search, pagination, category reassignment, budget alert rules, analytics, and exports (11/11 tests passing, 0 Pyright errors).
-- [x] Perform production build validation (`npm run build` completed 8/8 static pages with 0 errors, `npm run lint` 0 warnings/errors).
-- [x] Commit (`f98b08f`) and push all code changes to `origin/feature/database-setup`.
+## 🚀 Optional Future Enhancements (V2 Roadmap)
+
+1. **Multi-Currency Support**:
+   - Allow users to configure their base currency (e.g. USD `$`, EUR `€`, GBP `£`, INR `₹`) in Settings.
+2. **Recurring Subscriptions & Scheduled Expenses**:
+   - Automated recurring expense generator for recurring monthly bills (rent, streaming services, utilities).
+3. **Receipt & Invoice OCR Upload**:
+   - Image attachment upload with optical character recognition to extract total amount and merchant automatically.
+4. **Push Notifications**:
+   - Web push notification alerts when monthly category spending crosses the 80% budget threshold.
