@@ -50,7 +50,8 @@ def test_daily_monthly_yearly_analytics(client):
     monthly_res = client.get("/api/v1/analytics/monthly?month=8&year=2026")
     assert monthly_res.status_code == 200
     assert float(monthly_res.json()["total_amount"]) == 12000.0
-    assert len(monthly_res.json()["daily_breakdown"]) == 1
+    assert len(monthly_res.json()["daily_breakdown"]) == 31
+    assert float(monthly_res.json()["daily_breakdown"][0]["amount"]) == 12000.0
 
     # 3. Yearly Analytics
     yearly_res = client.get("/api/v1/analytics/yearly?year=2026")
