@@ -28,7 +28,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -41,13 +41,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full max-w-lg rounded-2xl glass-panel border border-slate-700/60 p-6 shadow-2xl z-10 overflow-hidden"
+            className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl glass-panel border border-slate-700/60 p-4 sm:p-6 shadow-2xl z-10 my-auto"
           >
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
-              <h2 className="text-xl font-bold text-white gradient-text">{title}</h2>
+            <div className="flex items-center justify-between pb-3 sm:pb-4 mb-3 sm:mb-4 border-b border-slate-800">
+              <h2 className="text-lg sm:text-xl font-bold text-white gradient-text">{title}</h2>
               <button
                 onClick={onClose}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
                 aria-label="Close modal"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -73,29 +73,32 @@ export default function SettingsPage() {
   const otherCategories = categories.filter((c) => deletingCategory && c.id !== deletingCategory.id);
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 max-w-5xl mx-auto">
       <Header
         title="Settings & Categories"
         subtitle="Manage dynamic expense categories and reassignment rules."
       />
 
       {/* Add Category Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+      <Card className="p-4 sm:p-6">
+        <CardHeader className="p-0 pb-3 sm:pb-4">
+          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
             <Tag className="w-4 h-4 text-indigo-400" />
             <span>Create New Category</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAddCategory} className="flex gap-4">
-            <Input
-              placeholder="Category name (e.g. Subscriptions, Travel)..."
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              required
-            />
-            <Button type="submit" variant="primary" isLoading={isAdding} className="gap-2 shrink-0">
+        <CardContent className="p-0">
+          <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Category name (e.g. Subscriptions, Travel)..."
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                required
+                className="text-xs sm:text-sm"
+              />
+            </div>
+            <Button type="submit" variant="primary" isLoading={isAdding} className="gap-2 shrink-0 text-xs sm:text-sm py-2 sm:py-2.5">
               <Plus className="w-4 h-4" />
               <span>Add Category</span>
             </Button>
@@ -105,50 +108,52 @@ export default function SettingsPage() {
 
       {/* Existing Categories Grid */}
       <div>
-        <h3 className="text-xl font-bold text-white mb-4">Active Categories ({categories.length})</h3>
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Active Categories ({categories.length})</h3>
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-16 rounded-xl glass-card animate-pulse bg-slate-800/40" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {categories.map((cat) => (
               <div
                 key={cat.id}
-                className="flex items-center justify-between p-4 rounded-xl glass-card border border-slate-800"
+                className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl glass-card border border-slate-800"
               >
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">
+                <div className="flex items-center space-x-3 min-w-0 flex-1 mr-2">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold shrink-0">
                     {cat.name.charAt(0)}
                   </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-white">{cat.name}</h4>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs sm:text-sm font-semibold text-white truncate">{cat.name}</h4>
+                    <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
                       {cat.expense_count} associated {cat.expense_count === 1 ? 'expense' : 'expenses'}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
                   <button
                     onClick={() => {
                       setEditingCategory(cat);
                       setEditName(cat.name);
                     }}
-                    className="p-2 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-slate-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-slate-800 transition-colors"
+                    title="Rename Category"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                   <button
                     onClick={() => {
                       setDeletingCategory(cat);
                       setReassignTargetId(otherCategories[0]?.id ? String(otherCategories[0].id) : '');
                     }}
-                    className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                    title="Delete Category"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </div>
@@ -159,9 +164,9 @@ export default function SettingsPage() {
 
       {/* Edit Category Modal */}
       <Modal
-        isOpen={!!editingCategory}
+        isOpen={Boolean(editingCategory)}
         onClose={() => setEditingCategory(null)}
-        title="Edit Category Name"
+        title="Rename Category"
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
           <Input
@@ -170,7 +175,7 @@ export default function SettingsPage() {
             onChange={(e) => setEditName(e.target.value)}
             required
           />
-          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
             <Button type="button" variant="outline" onClick={() => setEditingCategory(null)}>
               Cancel
             </Button>
@@ -183,42 +188,42 @@ export default function SettingsPage() {
 
       {/* Delete / Reassign Category Modal */}
       <Modal
-        isOpen={!!deletingCategory}
+        isOpen={Boolean(deletingCategory)}
         onClose={() => setDeletingCategory(null)}
-        title="Delete Category"
+        title={`Delete "${deletingCategory?.name}"`}
       >
         <form onSubmit={handleDeleteSubmit} className="space-y-4">
-          <div className="flex items-start space-x-3 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs">
-            <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
-            <div>
-              <p className="font-bold">Deleting &quot;{deletingCategory?.name}&quot;</p>
-              {deletingCategory && deletingCategory.expense_count > 0 ? (
-                <p className="mt-1">
-                  This category has <strong>{deletingCategory.expense_count}</strong> active expense(s).
-                  Select a category to reassign these expenses to.
-                </p>
-              ) : (
-                <p className="mt-1">This category has no associated expenses and can be deleted safely.</p>
-              )}
-            </div>
-          </div>
+          {deletingCategory && deletingCategory.expense_count > 0 ? (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-200/90 leading-relaxed">
+                  This category is currently linked to{' '}
+                  <span className="font-bold text-amber-100">{deletingCategory.expense_count} expenses</span>.
+                  Select a replacement category to reassign them to before deletion.
+                </div>
+              </div>
 
-          {deletingCategory && deletingCategory.expense_count > 0 && (
-            <Select
-              label="Reassign Existing Expenses To"
-              value={reassignTargetId}
-              onChange={(e) => setReassignTargetId(e.target.value)}
-              options={otherCategories.map((c) => ({ value: c.id, label: c.name }))}
-              required
-            />
+              <Select
+                label="Reassign Existing Expenses To"
+                value={reassignTargetId}
+                onChange={(e) => setReassignTargetId(e.target.value)}
+                options={otherCategories.map((c) => ({ value: c.id, label: c.name }))}
+                required
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-slate-300">
+              Are you sure you want to delete <span className="font-bold text-white">&quot;{deletingCategory?.name}&quot;</span>? This action cannot be undone.
+            </p>
           )}
 
-          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
             <Button type="button" variant="outline" onClick={() => setDeletingCategory(null)}>
               Cancel
             </Button>
             <Button type="submit" variant="danger">
-              Confirm Delete
+              Confirm Deletion
             </Button>
           </div>
         </form>

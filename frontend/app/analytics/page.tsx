@@ -66,9 +66,9 @@ export default function AnalyticsPage() {
       />
 
       {/* Date Selectors Row */}
-      <div className="glass-panel p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800/80 shadow-2xl">
-        <div className="flex items-center space-x-4">
-          <div className="w-48">
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800/80 shadow-2xl">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 sm:space-x-4">
+          <div className="w-full sm:w-44 lg:w-48">
             <Select
               label="Select Month"
               value={selectedMonth}
@@ -76,7 +76,7 @@ export default function AnalyticsPage() {
               options={MONTH_OPTIONS}
             />
           </div>
-          <div className="w-32">
+          <div className="w-full sm:w-28 lg:w-32">
             <Select
               label="Select Year"
               value={selectedYear}
@@ -86,9 +86,9 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="text-right">
-          <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Total Spend in Selected Period</p>
-          <p className="text-2xl font-extrabold text-white gradient-text font-mono mt-0.5">
+        <div className="text-left sm:text-right pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800/60">
+          <p className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400">Total Spend in Selected Period</p>
+          <p className="text-xl sm:text-2xl font-extrabold text-white gradient-text font-mono mt-0.5">
             ₹{totalMonthSpend.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </p>
         </div>

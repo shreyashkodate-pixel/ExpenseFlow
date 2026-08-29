@@ -1,9 +1,9 @@
 import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import '../styles/globals.css';
 import { ToastProvider } from '../components/ui/toast';
-import { Sidebar } from '../components/shared/Sidebar';
+import { AppShell } from '../components/shared/AppShell';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -16,6 +16,12 @@ export const metadata: Metadata = {
   description: 'Track daily expenses, set budget goals, analyze spending trends, and export financial data.',
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -23,16 +29,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${jakarta.variable} font-sans ambient-bg text-slate-100 flex min-h-screen relative`}>
+      <body className={`${jakarta.variable} font-sans ambient-bg text-slate-100 min-h-screen relative overflow-x-hidden`}>
         {/* Ambient Glow Orbs */}
-        <div className="fixed top-0 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
-        <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="fixed top-0 left-1/4 w-72 md:w-96 h-72 md:h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="fixed bottom-0 right-1/4 w-72 md:w-96 h-72 md:h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
         <ToastProvider>
-          <Sidebar />
-          <main className="flex-1 p-6 md:p-10 overflow-y-auto min-h-screen relative z-10 max-w-7xl mx-auto">
+          <AppShell>
             {children}
-          </main>
+          </AppShell>
         </ToastProvider>
       </body>
     </html>
