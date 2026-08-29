@@ -3,6 +3,7 @@
 import React from 'react';
 import { Plus, Download, FileText, Calendar } from 'lucide-react';
 import { Button } from '../ui/button';
+import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
   title: string;
@@ -40,6 +41,8 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+        <ThemeToggle />
+
         {onExportCsv && (
           <Button
             variant="outline"

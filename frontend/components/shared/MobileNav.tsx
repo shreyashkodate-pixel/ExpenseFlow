@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Menu, Sparkles } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 interface MobileNavProps {
   onOpenSidebar: () => void;
@@ -23,14 +24,17 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenSidebar }) => {
         </div>
       </div>
 
-      {/* Hamburger Toggle Button */}
-      <button
-        onClick={onOpenSidebar}
-        className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500/50 transition-colors active:scale-95"
-        aria-label="Open navigation menu"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
+      {/* Right Action: Theme Toggle & Hamburger */}
+      <div className="flex items-center space-x-2">
+        <ThemeToggle />
+        <button
+          onClick={onOpenSidebar}
+          className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500/50 transition-colors active:scale-95"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </div>
     </header>
   );
 };
