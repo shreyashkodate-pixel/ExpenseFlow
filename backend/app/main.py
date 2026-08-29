@@ -46,8 +46,9 @@ if isinstance(origins, str):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=origins if "*" not in origins else ["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.onrender\.com|http://localhost:\d+",
+    allow_credentials=True if "*" not in origins else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
