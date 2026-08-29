@@ -106,3 +106,16 @@ Bootstrapped clean directory structure without clutter:
   - `npm run lint` & `npx tsc --noEmit`: 0 errors.
   - `npm run build`: Compiled 8/8 static pages cleanly with 0 errors.
 
+---
+
+### 9. Production Docker Containerization (August 29, 2026)
+- **Backend Containerization**:
+  - Created [`backend/Dockerfile`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/Dockerfile) using lightweight `python:3.11-slim` with automatic Alembic migration execution (`alembic upgrade head`) and Uvicorn server startup.
+  - Added [`backend/.dockerignore`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/.dockerignore) to prevent copying virtual environment or cache files.
+- **Frontend Containerization**:
+  - Created multi-stage [`frontend/Dockerfile`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/Dockerfile) (`deps` -> `builder` -> `runner`) using `node:20-alpine` with production non-root user execution (`nextjs`).
+  - Added [`frontend/.dockerignore`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/.dockerignore) and initialized [`frontend/public/.gitkeep`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/public/.gitkeep).
+- **Multi-Container Orchestration**:
+  - Created root [`docker-compose.yml`](file:///Users/apple/Documents/Projects/ExpenseFlow/docker-compose.yml) managing `postgres` (PostgreSQL 16), `backend` (FastAPI), and `frontend` (Next.js) services with automatic health checks (`pg_isready`) and volume persistence.
+
+
