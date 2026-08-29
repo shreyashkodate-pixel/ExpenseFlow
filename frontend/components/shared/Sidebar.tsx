@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Receipt, PieChart, Wallet, Settings, Sparkles, X } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { PWAInstallButton } from './PWAInstall';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -82,8 +83,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
         })}
       </nav>
 
-      {/* App Footer: Theme Switcher & Connection Badge */}
-      <div className="p-4 border-t border-slate-200/80 dark:border-slate-800/80 space-y-3">
+      {/* App Footer: PWA Button, Theme Switcher & Connection Badge */}
+      <div className="p-4 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2.5">
+        {/* PWA Install Button */}
+        <PWAInstallButton />
+
         {/* Prominent Theme Toggle Row */}
         <ThemeToggle showLabel={true} />
 
