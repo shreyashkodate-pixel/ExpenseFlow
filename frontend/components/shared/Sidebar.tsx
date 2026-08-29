@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Receipt, PieChart, Wallet, Settings, Sparkles, X } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -81,8 +82,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
         })}
       </nav>
 
-      {/* App Footer & Connection Badge */}
-      <div className="p-4 border-t border-slate-800/80">
+      {/* App Footer: Theme Switcher & Connection Badge */}
+      <div className="p-4 border-t border-slate-800/80 space-y-3">
+        {/* Prominent Theme Toggle Row */}
+        <ThemeToggle showLabel={true} />
+
+        {/* PostgreSQL Status Indicator */}
         <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between text-xs shadow-inner">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-glow" />
