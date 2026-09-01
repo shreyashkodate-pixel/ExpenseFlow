@@ -84,14 +84,17 @@ def test_change_password(client, auth_user_a):
     assert new_login.status_code == 200
 
 
-def test_password_reset_flow(client, auth_user_a):
-    # 1. Request reset
+def test_password_reset_flow(client, auth_user_a, db_session):
+    from app.services import auth_service
+    # 1. Request reset for existing user -> 200 OK
     forgot_resp = client.post("/api/v1/auth/forgot-password", json={
         "email": "user_a@example.com"
     })
     assert forgot_resp.status_code == 200
-    data = forgot_resp.json()
-    reset_token = data.get("reset_token")
+    assert "sent" in forgot_resp.json()["message"].lower()
+
+    # Generate token directly via auth_service for testing reset-password endpoint
+    reset_token = auth_service.request_password_reset(db_session, "user_a@example.com")
     assert reset_token is not None
 
     # 2. Reset with token
@@ -107,3 +110,11 @@ def test_password_reset_flow(client, auth_user_a):
         "password": "RecoveredPassword888!"
     })
     assert login_resp.status_code == 200
+
+
+def test_forgot_password_unregistered_email(client):
+    resp = client.post("/api/v1/auth/forgot-password", json={
+        "email": "nonexistent_dummy@example.com"
+    })
+    assert resp.status_code == 404
+    assert resp.json()["error_code"] == "USER_NOT_FOUND"

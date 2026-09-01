@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ...core.config import settings
 from ...core.database import get_db
 from ...core.dependencies import get_current_user, rate_limit
-from ...core.exceptions import UnauthorizedException
+from ...core.exceptions import UnauthorizedException, ResourceNotFoundException
 from ...models.user import User
 from ...schemas.auth import (
     UserRegister,
@@ -218,21 +218,25 @@ def forgot_password(
     db: Session = Depends(get_db),
     _limit=Depends(rate_limit("auth:forgot_pwd", max_requests=5, window_seconds=60)),
 ):
-    """Generate a password reset token and dispatch reset email."""
+    """Generate a password reset token and dispatch reset email. Returns 404 if email is not found."""
     raw_token = auth_service.request_password_reset(db, schema.email)
-    if raw_token:
-        logger.info(f"Dispatching password reset email task for: {schema.email}")
-        background_tasks.add_task(
-            email_service.send_password_reset_email,
-            to_email=schema.email,
-            reset_token=raw_token
-        )
-    else:
+    if not raw_token:
         logger.warning(f"Password reset requested for non-existent email: {schema.email}")
+        raise ResourceNotFoundException(
+            detail="No account found with this email address.",
+            error_code="USER_NOT_FOUND"
+        )
+
+    logger.info(f"Dispatching password reset email task for: {schema.email}")
+    background_tasks.add_task(
+        email_service.send_password_reset_email,
+        to_email=schema.email,
+        reset_token=raw_token
+    )
 
     return {
         "status": "success",
-        "message": "If that email is registered in ExpenseFlow, a password reset link has been sent to your email inbox.",
+        "message": "A password reset link has been sent to your email inbox.",
     }
 
 
