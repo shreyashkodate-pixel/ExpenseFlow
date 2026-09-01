@@ -27,13 +27,21 @@ def _set_refresh_cookie(response: Response, raw_token: str) -> None:
     """Helper to attach the secure HttpOnly refresh token cookie to the response."""
     max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     is_secure = settings.COOKIE_SECURE or (settings.APP_ENV == "production")
+    
+    # In production across different domains (vercel.app <-> onrender.com),
+    # SameSite must be 'none' and Secure must be True for cross-site cookie transmission.
+    # In local development over HTTP, SameSite is 'lax' and Secure is False.
+    samesite = settings.COOKIE_SAMESITE
+    if is_secure and samesite.lower() == "lax" and settings.APP_ENV == "production":
+        samesite = "none"
+
     response.set_cookie(
         key="refresh_token",
         value=raw_token,
         max_age=max_age,
         httponly=True,
         secure=is_secure,
-        samesite=settings.COOKIE_SAMESITE,
+        samesite=samesite,
         domain=settings.COOKIE_DOMAIN,
         path=f"{settings.API_V1_PREFIX}/auth",
     )
@@ -42,13 +50,17 @@ def _set_refresh_cookie(response: Response, raw_token: str) -> None:
 def _clear_refresh_cookie(response: Response) -> None:
     """Helper to clear the refresh token cookie upon logout."""
     is_secure = settings.COOKIE_SECURE or (settings.APP_ENV == "production")
+    samesite = settings.COOKIE_SAMESITE
+    if is_secure and samesite.lower() == "lax" and settings.APP_ENV == "production":
+        samesite = "none"
+
     response.delete_cookie(
         key="refresh_token",
         path=f"{settings.API_V1_PREFIX}/auth",
         domain=settings.COOKIE_DOMAIN,
         httponly=True,
         secure=is_secure,
-        samesite=settings.COOKIE_SAMESITE,
+        samesite=samesite,
     )
 
 

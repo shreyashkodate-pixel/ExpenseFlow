@@ -1,21 +1,26 @@
+from datetime import date
+
+
 def test_dashboard_summary_endpoint(client, auth_user_a):
     headers = auth_user_a["headers"]
     cats = client.get("/api/v1/categories", headers=headers).json()
     food_id = next(c["id"] for c in cats if c["name"] == "Food")
     transport_id = next(c["id"] for c in cats if c["name"] == "Transport")
 
-    # Add expenses
+    today_str = str(date.today())
+
+    # Add expenses for current month
     client.post("/api/v1/expenses", headers=headers, json={
         "amount": 500.0,
         "category_id": food_id,
         "description": "Groceries",
-        "date": "2026-08-01"
+        "date": today_str
     })
     client.post("/api/v1/expenses", headers=headers, json={
         "amount": 1500.0,
         "category_id": transport_id,
         "description": "Flight Ticket",
-        "date": "2026-08-10"
+        "date": today_str
     })
 
     # Fetch dashboard summary
