@@ -15,7 +15,12 @@ Thumbs.db
 
 # Root level secrets
 .env
+.env*
+.env\ *
 .env.*
+*.env
+*.env*
+*.env.*
 !.env.example
 
 # Postman Local Workspace Cache
