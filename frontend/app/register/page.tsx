@@ -57,7 +57,7 @@ export default function RegisterPage() {
 
     try {
       await register({ email, password, full_name: fullName || undefined });
-      showToast('Account created! Welcome to ExpenseFlow.', 'success');
+      showToast('Account created successfully! Please sign in with your credentials.', 'success');
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorMsg(err.message);

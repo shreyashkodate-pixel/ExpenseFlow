@@ -1,21 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
 import { ApiError } from '../../lib/api/client';
 
-export default function LoginPage() {
+function LoginFormContent() {
   const { login, googleLogin } = useAuth();
   const { showToast } = useToast();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isRegistered, setIsRegistered] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setIsRegistered(true);
+    }
+  }, [searchParams]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +88,16 @@ export default function LoginPage() {
 
       {/* Card Container */}
       <div className="glass-card p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-2xl backdrop-blur-xl">
+        {/* Success Registration Notice */}
+        {isRegistered && (
+          <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start space-x-3 text-emerald-600 dark:text-emerald-400 text-sm animate-fade-in-up">
+            <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="flex-1 font-medium">
+              Account created successfully! Please sign in with your email and password.
+            </div>
+          </div>
+        )}
+
         {/* Error Alert */}
         {errorMsg && (
           <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start space-x-3 text-rose-600 dark:text-rose-400 text-sm animate-shake">
@@ -204,5 +223,13 @@ export default function LoginPage() {
         <span>End-to-End User Data Isolation Protected</span>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8 text-slate-400">Loading sign in...</div>}>
+      <LoginFormContent />
+    </Suspense>
   );
 }

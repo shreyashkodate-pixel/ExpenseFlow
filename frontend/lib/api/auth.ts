@@ -13,9 +13,6 @@ import {
 
 export async function register(data: RegisterData): Promise<TokenResponse> {
   const res = await apiPost<TokenResponse>('/auth/register', data);
-  if (res.access_token) {
-    setAccessToken(res.access_token);
-  }
   return res;
 }
 

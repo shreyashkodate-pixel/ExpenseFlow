@@ -75,9 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (data: RegisterData) => {
-    const res = await authApi.register(data);
-    setUser(res.user);
-    router.push('/');
+    await authApi.register(data);
+    setAccessToken(null);
+    setUser(null);
+    router.push('/login?registered=true');
   };
 
   const googleLogin = async (data: GoogleAuthData) => {
