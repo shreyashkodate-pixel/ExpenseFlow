@@ -1,459 +1,397 @@
 # Software Requirements Specification (SRS)
 ## ExpenseFlow — Personal Expense & Budget Tracker
 
-**Document Version:** 1.0
-**Status:** Draft
-**Based on:** ExpenseFlow PRD v1.0 (Merged)
-**Prepared for:** Solo/small-team development, local-first → cloud deployment (Supabase + Vercel + Render)
+**Document Version:** 2.0  
+**Status:** Approved Architecture & Implementation Spec  
+**Based on:** ExpenseFlow PRD & Production Authentication Architecture Spec  
+**Prepared for:** Full-stack development, multi-user cloud deployment (Supabase + Vercel + Render)
 
 ---
 
 ## 1. Introduction
 
 ### 1.1 Purpose
-This SRS translates the ExpenseFlow PRD into precise, implementable technical requirements across frontend, backend, database, API, and deployment layers, so the application can be built correctly in a single, coherent pass with minimal rework between local development and cloud production.
+This SRS specifies the complete technical requirements for **ExpenseFlow**, including its secure JWT-based authentication layer, Google OAuth 2.0 / OpenID Connect integration, strict user data isolation, dynamic category management, budget goal tracking, spending analytics, and automated multi-format data exports (CSV and PDF).
 
 ### 1.2 Scope
-ExpenseFlow is a responsive web application for personal expense tracking, dynamic category management, budget goal tracking with alerts, and spending analytics — built as a REST API–driven full-stack app (Next.js frontend, FastAPI backend, PostgreSQL database).
+ExpenseFlow is a responsive, multi-user web application where every authenticated user manages their own private financial records. The system provides:
+* Secure Sign-Up, Login, Google OAuth 2.0 Sign-In, and Password Reset lifecycle.
+* Short-lived JWT Access Tokens (15 min) + HttpOnly/Secure Refresh Tokens (14 days) with automatic token rotation, reuse detection, and server-side revocation.
+* Strict per-user data isolation (User A can never read, modify, or delete User B's records).
+* Dynamic category management (global starter categories + custom user categories).
+* Real-time budget utilization tracking (`on_track`, `warning`, `exceeded`).
+* Interactive analytics (Daily, Monthly, Yearly trends, and Category spending breakdowns).
+* ReportLab PDF and CSV expense report export streams.
+* Progressive Web App (PWA) offline resilience and multi-device responsive design.
 
 ### 1.3 Definitions & Abbreviations
 | Term | Meaning |
 |---|---|
 | SRS | Software Requirements Specification |
-| ORM | Object-Relational Mapper (SQLAlchemy) |
+| JWT | JSON Web Token (RFC 7519) |
+| OAuth 2.0 / OIDC | OpenID Connect identity layer on top of OAuth 2.0 |
+| RTR | Refresh Token Rotation (one-time use tokens with theft detection) |
+| ORM | Object-Relational Mapper (SQLAlchemy 2.0) |
 | CRUD | Create, Read, Update, Delete |
-| FE / BE | Frontend / Backend |
-| DTO | Data Transfer Object (Pydantic schema) |
-
-### 1.4 References
-- ExpenseFlow PRD v1.0 (Merged)
-- FastAPI, Next.js, SQLAlchemy, Alembic official documentation
-- Supabase, Vercel, Render platform documentation
+| DTO | Data Transfer Object (Pydantic v2 schemas / TypeScript types) |
 
 ---
 
 ## 2. Overall Description
 
 ### 2.1 Product Perspective
-A new, standalone, single-user web application. No dependency on legacy systems. Designed so local development requires zero cloud dependency, and swapping to cloud services (Supabase Postgres, Render, Vercel) at deployment time requires **only environment variable changes** — no code changes.
+A standalone, multi-user web application with a decoupled Next.js frontend and FastAPI backend. All state is persisted in a PostgreSQL database (Supabase). The backend is fully stateless with server-side token validation and database-backed refresh token revocation.
 
-### 2.2 Development & Deployment Philosophy (critical constraint)
-1. **Local-first development:** Build and fully test on local machine — local Postgres (or Supabase free-tier dev project), FastAPI run via `uvicorn`, Next.js via `npm run dev`. **No Docker at this stage.**
-2. **Dockerize for production only:** Once locally verified, containerize FE and BE separately for deployment.
-3. **Cloud production stack:** Supabase (Postgres), Render (FastAPI backend container), Vercel (Next.js frontend, typically without Docker since Vercel builds natively — see §9.3).
-4. Every config that differs between local and cloud (DB URL, API base URL, CORS origins, secrets) **must** be environment-variable-driven — never hardcoded — so the same codebase runs unmodified in both environments.
+### 2.2 Security & Data Isolation Philosophy (Critical Architectural Rules)
+1. **Zero Trust on Frontend Identifiers:** The backend *never* trusts a `user_id` supplied in request bodies, query parameters, or URL paths. The user identity is derived exclusively from the verified JWT in the `Authorization: Bearer <token>` header.
+2. **Strict Resource Ownership:** Every database query for expenses, budgets, analytics, and custom categories must filter by `user_id == current_user.id`. Any attempt to read or mutate another user's entity returns `404 Not Found` (never leaking existence).
+3. **Defense-in-Depth Token Storage:** Access tokens reside exclusively in client-side memory (never stored in `localStorage`). Refresh tokens reside in `HttpOnly`, `Secure`, `SameSite=Lax` cookies. Database stores only cryptographic SHA-256 hashes of refresh tokens.
+4. **Token Reuse Detection:** If an already-revoked or rotated refresh token is presented, all active sessions for that user session family are immediately invalidated.
+5. **BCrypt Password Security:** Passwords hashed with BCrypt (cost factor 12). Plaintext passwords never logged or returned.
+6. **No Admin/RBAC Overhead:** The system enforces flat, isolated single-user perimeters without unnecessary role-based access control complexity.
 
-### 2.3 User Characteristics
-Single non-technical end user (or a handful, ~1–15, no auth in V1) who wants a simple, fast, visually clear way to log and understand personal spending.
-
-### 2.4 Assumptions & Dependencies
-- No authentication in V1 (see PRD §11 risk note — flagged for Phase 2)
-- One fixed currency (₹ INR)
-- Single environment credentials for Supabase/Render/Vercel obtained before production deployment
-- Node.js 18+, Python 3.11+, PostgreSQL 15+ available locally for dev
+### 2.3 Assumptions & Dependencies
+* Python 3.11+, Node.js 18+, PostgreSQL 15+ (local dev) / PostgreSQL 16 (Supabase cloud).
+* Google Cloud Console OAuth 2.0 Client ID and Secret configured for Google Sign-In.
+* Currency format standard (₹ INR default with extensible symbol formatting).
 
 ---
 
 ## 3. System Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│  FRONTEND — Next.js (App Router) + TS    │
-│  Tailwind CSS + shadcn/ui + Framer Motion│
-│  Recharts + Three.js/R3F (3D accents)    │
-│  Deployed: Vercel                        │
-└──────────────────┬────────────────────────┘
-                   │ REST API (JSON, HTTPS)
-                   ↓
-┌─────────────────────────────────────────┐
-│  BACKEND — FastAPI + Pydantic            │
-│  SQLAlchemy (ORM) + Alembic (migrations) │
-│  Deployed: Render (Dockerized)           │
-└──────────────────┬────────────────────────┘
-                   │ SQL (asyncpg / psycopg)
-                   ↓
-┌─────────────────────────────────────────┐
-│  DATABASE — PostgreSQL                   │
-│  Deployed: Supabase                      │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  FRONTEND — Next.js 14 (App Router) + TypeScript       │
+│  Tailwind CSS + Glassmorphism Tokens + Framer Motion   │
+│  AuthContext + In-Memory JWT + 401 Silent Refresh       │
+│  Deployed: Vercel                                      │
+└───────────────────────────┬────────────────────────────┘
+                            │ HTTPS (Bearer JWT / HttpOnly Cookie)
+                            ↓
+┌────────────────────────────────────────────────────────┐
+│  BACKEND — FastAPI (Python 3.11/3.14)                  │
+│  Security Layer (BCrypt, PyJWT, Google Auth)           │
+│  User Ownership Dependencies (`get_current_user`)      │
+│  SQLAlchemy 2.0 ORM + Alembic Migrations               │
+│  Deployed: Render (Dockerized)                         │
+└───────────────────────────┬────────────────────────────┘
+                            │ PostgreSQL Protocol (psycopg)
+                            ↓
+┌────────────────────────────────────────────────────────┐
+│  DATABASE — PostgreSQL (Supabase / Local)              │
+│  Tables: users, refresh_tokens, password_reset_tokens, │
+│          categories, expenses, budgets                 │
+└────────────────────────────────────────────────────────┘
 ```
-
-**Architecture principles:**
-- Backend is fully stateless; all state lives in PostgreSQL — required for Render's horizontally-restartable containers.
-- Frontend never talks to the DB directly — always through the REST API.
-- CORS is environment-driven — dev allows `localhost:3000`; prod allows only the deployed Vercel domain.
 
 ---
 
 ## 4. Backend Requirements (FastAPI)
 
-### 4.1 Standard Folder Structure
+### 4.1 Folder Structure
 ```
 backend/
-│
 ├── app/
-│   ├── main.py                     # FastAPI app instance, router registration, CORS, startup events
-│   │
+│   ├── main.py                     # FastAPI app, CORS middleware, global exception handler, lifespan
 │   ├── core/
-│   │   ├── config.py                # Pydantic Settings — loads all env vars, single source of truth
-│   │   ├── database.py              # SQLAlchemy engine/session setup
-│   │   └── security.py              # Reserved for Phase 2 auth — no logic in V1, boundary exists early
-│   │
-│   ├── models/                      # SQLAlchemy ORM models
-│   │   ├── expense.py
-│   │   ├── category.py
-│   │   └── budget.py
-│   │
-│   ├── schemas/                     # Pydantic request/response DTOs
-│   │   ├── expense.py
-│   │   ├── category.py
-│   │   ├── budget.py
-│   │   └── common.py                # shared: pagination, error response shapes
-│   │
-│   ├── routers/
-│   │   └── v1/                      # API versioned from day one
-│   │       ├── expenses.py
-│   │       ├── categories.py
-│   │       ├── budgets.py
-│   │       ├── dashboard.py
-│   │       ├── analytics.py
-│   │       └── health.py
-│   │
-│   ├── services/                    # Business logic — testable independent of HTTP layer
-│   │   ├── expense_service.py
-│   │   ├── category_service.py
-│   │   ├── budget_service.py
-│   │   ├── analytics_service.py
-│   │   └── alert_service.py
-│   │
-│   ├── utils/
-│   │   ├── validators.py
-│   │   └── formatters.py
-│   │
+│   │   ├── config.py               # Pydantic Settings (JWT secrets, DB URL, CORS origins, Google OAuth)
+│   │   ├── database.py             # SQLAlchemy engine & session maker
+│   │   ├── security.py             # BCrypt hashing, JWT creation/decoding, SHA-256 token hashing
+│   │   ├── dependencies.py         # get_current_user, rate limiter dependency
+│   │   └── exceptions.py           # Standard AppException and handlers
+│   ├── models/
+│   │   ├── user.py                 # User ORM model
+│   │   ├── refresh_token.py        # Hashed RefreshToken ORM model
+│   │   ├── password_reset_token.py # Hashed PasswordResetToken ORM model
+│   │   ├── expense.py              # Expense model with user_id FK
+│   │   ├── category.py             # Category model with nullable user_id FK
+│   │   └── budget.py               # Budget model with user_id FK
+│   ├── schemas/
+│   │   ├── auth.py                 # UserRegister, UserLogin, GoogleAuth, TokenResponse, etc.
+│   │   ├── expense.py              # ExpenseCreate, ExpenseUpdate, ExpenseResponse
+│   │   ├── category.py             # CategoryCreate, CategoryUpdate, CategoryResponse
+│   │   ├── budget.py               # BudgetCreate, BudgetUpdate, BudgetStatusItem
+│   │   ├── analytics.py            # DashboardSummary, Daily/Monthly/Yearly analytics
+│   │   └── common.py               # PaginatedResponse, ErrorResponse
+│   ├── routers/v1/
+│   │   ├── auth.py                 # Register, Login, Google, Refresh, Logout, Reset Password
+│   │   ├── expenses.py             # User-isolated Expense CRUD & Export
+│   │   ├── categories.py           # Global + User custom Category CRUD
+│   │   ├── budgets.py              # User-isolated Budget CRUD & Status
+│   │   ├── dashboard.py            # User-isolated Dashboard Summary
+│   │   ├── analytics.py            # User-isolated Spending Trends
+│   │   └── health.py               # Health check
+│   ├── services/
+│   │   ├── auth_service.py         # Core auth, token rotation, session management, Google validation
+│   │   ├── expense_service.py      # User-scoped expense queries and mutations
+│   │   ├── category_service.py     # Global + user custom categories logic
+│   │   ├── budget_service.py       # User-scoped budget status calculations
+│   │   ├── analytics_service.py    # User-scoped metrics and aggregations
+│   │   └── export_service.py       # User-scoped CSV & PDF report builder
 │   └── seed/
-│       └── seed_data.py             # Idempotent seed script (starter categories)
-│
+│       └── seed_data.py            # Starter category seeder
 ├── alembic/
-│   ├── versions/
-│   ├── env.py
-│   └── script.py.mako
-│
+│   └── versions/                   # Versioned database migrations
 ├── tests/
-│   ├── conftest.py                  # shared fixtures (test DB session, test client)
-│   ├── test_expenses.py
-│   ├── test_categories.py
-│   ├── test_budgets.py
-│   ├── test_analytics.py
-│   └── test_health.py
-│
-├── .env.example
-├── .gitignore                       # backend-specific
-├── requirements.txt
-├── alembic.ini
-├── Dockerfile                       # production only
-└── README.md                        # local setup instructions (see §9.1)
+│   ├── conftest.py                 # Test DB fixtures, mock users, client helpers
+│   ├── test_auth.py                # Registration, login, password reset tests
+│   ├── test_token_flow.py          # Token rotation, reuse detection, revocation tests
+│   ├── test_data_isolation.py      # Multi-user data isolation verification
+│   └── test_expenses.py            # Expense CRUD & validation tests
+└── requirements.txt
 ```
 
-**Layering rule (enforced, non-negotiable):** `routers` never contain business logic or raw SQL — they call `services`, which use `models` via SQLAlchemy sessions and return/accept `schemas`. This is what makes the codebase safe to hand off or extend without introducing bugs.
-
-**API versioning implication:** since routers live under `routers/v1/`, all endpoint paths in §7 are prefixed `/api/v1/...` (not `/api/...`) — `API_V1_PREFIX` in `core/config.py` controls this centrally.
-
-### 4.2 Backend `.env.example`
+### 4.2 Backend Environment Configuration (`.env.example`)
 ```env
+# --- Application ---
+APP_NAME=ExpenseFlow
+APP_ENV=development
+API_V1_PREFIX=/api/v1
+LOG_LEVEL=INFO
+
 # --- Database ---
-DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/expenseflow
-# In production (Supabase): postgresql+psycopg://<user>:<pass>@<supabase-host>:5432/postgres
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/expenseflow
 
 # --- CORS ---
 CORS_ORIGINS=http://localhost:3000
-# In production: https://your-app.vercel.app
+
+# --- JWT & Security ---
+JWT_SECRET_KEY=generate_a_secure_random_64_character_secret_key_here
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_DAYS=14
+PASSWORD_RESET_EXPIRE_MINUTES=60
+COOKIE_SECURE=false
+COOKIE_SAMESITE=lax
+
+# --- Google OAuth 2.0 ---
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 ```
-*(Note: All other settings like `APP_NAME`, `API_V1_PREFIX`, `APP_ENV`, `SEED_ON_STARTUP`, and `LOG_LEVEL` have sensible default values in `app/core/config.py` and can be overridden via environment variables if needed.)*
-
-### 4.3 Configuration Loading
-- `config.py` uses `pydantic-settings.BaseSettings` to read all values from environment (loaded from `.env` via `python-dotenv` locally; via platform env vars on Render).
-- **No value in `config.py` or anywhere else in the codebase may be hardcoded** — every DB URL, secret, CORS origin, and feature flag flows through `Settings`.
-- Fails fast (raises on startup) if a required env var is missing — prevents "works on my machine" bugs from reaching Render.
-
-### 4.4 Migrations & Seeding
-- All schema changes go through **Alembic** migrations — never manual `create_all()` in production.
-- `alembic upgrade head` runs as part of the Render deploy step (pre-start command).
-- **Seed data:** `seed/seed_data.py` inserts the starter categories (Food, Transport, Rent, Shopping, Bills, Entertainment, Health, Education, Other) idempotently (checks existence before insert) — safe to run repeatedly, runs automatically only when `SEED_ON_STARTUP=true` (local/dev), never blindly in production.
-
-### 4.5 Health Endpoint
-| Method | Endpoint | Response | Purpose |
-|---|---|---|---|
-| GET | `/api/v1/health` | `{"status": "ok", "db": "connected", "version": "1.0.0"}` | Render health checks, uptime monitors. Verifies DB connectivity, not just process liveness. |
-
-Returns `503` with `{"status": "error", "db": "disconnected"}` if the DB ping fails — so Render correctly flags an unhealthy instance instead of routing traffic to a broken one.
-
-### 4.6 Error Handling Contract
-All error responses follow one shape, app-wide (enforced via a global FastAPI exception handler):
-```json
-{
-  "detail": "Human-readable message",
-  "error_code": "EXPENSE_NOT_FOUND",
-  "status_code": 404
-}
-```
-| Status | Usage |
-|---|---|
-| 200 | Success |
-| 201 | Resource created |
-| 400 | Bad request (malformed input) |
-| 404 | Resource not found |
-| 422 | Validation error (Pydantic) |
-| 500 | Internal server error |
 
 ---
 
-## 5. Frontend Requirements (Next.js)
+## 5. Frontend Requirements (Next.js 14 App Router)
 
-### 5.1 Standard Folder Structure
+### 5.1 Structure & Authentication Components
 ```
 frontend/
 ├── app/
-│   ├── layout.tsx
-│   ├── page.tsx                 # Dashboard (landing)
-│   ├── expenses/
-│   │   └── page.tsx
-│   ├── analytics/
-│   │   └── page.tsx
-│   ├── budget/
-│   │   └── page.tsx
-│   └── settings/
-│       └── page.tsx
-│
+│   ├── layout.tsx                  # Root layout with ThemeProvider, ToastProvider, AuthProvider
+│   ├── page.tsx                    # Dashboard (Protected)
+│   ├── expenses/page.tsx           # Expense Management (Protected)
+│   ├── analytics/page.tsx          # Analytics (Protected)
+│   ├── budget/page.tsx             # Budget Goals (Protected)
+│   ├── settings/page.tsx           # Settings & Account Security (Protected)
+│   ├── login/page.tsx              # Sign-In View with Google OAuth button
+│   ├── register/page.tsx           # Sign-Up View with Password Strength indicator
+│   ├── forgot-password/page.tsx    # Password Reset Request View
+│   └── reset-password/page.tsx     # Password Reset Confirmation View
 ├── components/
-│   ├── dashboard/                # Summary cards, charts
-│   ├── expenses/                 # Table, form, filters, modal
-│   ├── analytics/
-│   ├── budget/
-│   ├── shared/                   # Loading skeletons, empty states, error states
-│   └── ui/                       # shadcn/ui primitives
-│
+│   ├── auth/
+│   │   └── ProtectedRoute.tsx      # Client auth guard & redirect handler
+│   ├── dashboard/                  # Dashboard cards and widgets
+│   ├── expenses/                   # ExpenseTable, ExpenseFilters, ExpenseModal
+│   ├── shared/                     # Sidebar, MobileNav, Header, ThemeToggle, PWAInstall
+│   └── ui/                         # Modal, Toast, Button, Input primitives
+├── context/
+│   └── AuthContext.tsx             # Global Auth State, login, logout, refresh handlers
 ├── lib/
-│   ├── api/                      # Typed API client functions (one file per resource)
+│   ├── api/
+│   │   ├── client.ts               # In-memory JWT storage, fetch wrapper & 401 refresh interceptor
+│   │   ├── auth.ts                 # Typed auth API endpoints
 │   │   ├── expenses.ts
 │   │   ├── categories.ts
-│   │   ├── budget.ts
+│   │   ├── budgets.ts
 │   │   └── analytics.ts
-│   ├── validation/                # Zod schemas mirroring backend Pydantic schemas
-│   └── utils.ts
-│
-├── hooks/                         # Custom hooks (useExpenses, useBudget, etc.)
-├── types/                         # Shared TypeScript types (mirrors API contract)
-├── styles/
-│
-├── .env.example
-├── .env.local                     # gitignored, local only
-├── .gitignore                     # frontend-specific
-├── next.config.js
-├── tailwind.config.ts
-├── Dockerfile                     # production only
-└── package.json
+│   └── validation/                 # Zod validation schemas
+└── types/
+    └── auth.ts                     # User, Token, AuthState TypeScript interfaces
 ```
-
-### 5.2 Frontend `.env.example`
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
-# In production (Vercel): https://your-backend.onrender.com/api
-NEXT_PUBLIC_APP_ENV=development
-```
-
-### 5.3 UI/UX & Interaction Requirements
-| Requirement | Detail |
-|---|---|
-| **Validation** | Client-side validation via Zod + react-hook-form, mirroring backend Pydantic rules exactly (positive amount, no future date, required title ≤50 chars) — user gets instant feedback before the API round-trip. |
-| **Design system** | shadcn/ui components throughout (buttons, dialogs, dropdowns, tables, tabs, toasts, tooltips); Tailwind for layout/spacing; rounded cards, soft shadows, clear hierarchy. |
-| **Framer Motion** | Page transitions, list item enter/exit (e.g. expense added/removed), modal open/close, chart reveal-on-scroll. Used purposefully — not decoratively on every element. |
-| **Micro-interactions** | Button press feedback, form field focus states, success toast on save, subtle hover states on cards/rows, animated number counters on dashboard totals. |
-| **3D accents** | Optional lightweight 3D (e.g. React Three Fiber) reserved for a hero/empty-state illustration or an interactive budget visualization — not applied to core data tables, to protect performance and clarity. |
-| **Responsive design** | Mobile-first Tailwind breakpoints; dashboard grid collapses to single column on mobile; tables become scrollable/stacked cards on small screens; tested at 375px, 768px, 1024px, 1440px. |
-| **Theming** | Light/dark mode via a theme provider (e.g. `next-themes`), persisted in `localStorage`, applied consistently via Tailwind's `dark:` variants. |
-| **App states** | Every data view implements: loading (skeleton), empty (with CTA), no-search-results, error (with retry), success (toast). No screen is ever left blank or stuck. |
-
-### 5.4 API Integration Rules
-- All API calls go through a single typed client in `lib/api/` — no ad-hoc `fetch()` calls scattered in components.
-- Base URL always read from `NEXT_PUBLIC_API_BASE_URL` — never hardcoded, so switching from local FastAPI to Render requires zero code change.
-- TypeScript types in `types/` are hand-kept in sync with backend Pydantic schemas (see §7 API Contract) to prevent shape-mismatch bugs.
 
 ---
 
-## 6. Database Requirements (PostgreSQL + SQLAlchemy + Alembic)
+## 6. Database Schema & Relations (PostgreSQL)
 
-### 6.1 Schema
+### 6.1 Entity Relational Schema
 
-**`categories`**
-| Column | Type | Constraints |
-|---|---|---|
-| id | UUID / SERIAL | PK |
-| name | VARCHAR(50) | UNIQUE, NOT NULL |
-| created_at | TIMESTAMP | default now() |
+```mermaid
+erDiagram
+    USERS ||--o{ EXPENSES : "owns"
+    USERS ||--o{ BUDGETS : "sets"
+    USERS ||--o{ REFRESH_TOKENS : "issues"
+    USERS ||--o{ PASSWORD_RESET_TOKENS : "requests"
+    USERS ||--o{ CATEGORIES : "creates (optional)"
+    CATEGORIES ||--o{ EXPENSES : "classifies"
+    CATEGORIES ||--o{ BUDGETS : "targets"
 
-**`expenses`**
-| Column | Type | Constraints |
-|---|---|---|
-| id | UUID / SERIAL | PK |
-| amount | DECIMAL(10,2) | NOT NULL, CHECK (amount > 0) |
-| category_id | FK → categories.id | NOT NULL, ON DELETE RESTRICT* |
-| description | VARCHAR(50) | NOT NULL |
-| notes | TEXT | nullable |
-| date | DATE | NOT NULL, CHECK (date <= CURRENT_DATE) |
-| payment_method | VARCHAR(30) | nullable (e.g. Cash, GPay, Credit Card, UPI, Bank Transfer, Others; tagging only, no gateway integration) |
-| created_at | TIMESTAMP | default now() |
-| updated_at | TIMESTAMP | auto-update on change |
+    USERS {
+        int id PK
+        string email UK
+        string hashed_password
+        string full_name
+        string avatar_url
+        boolean is_verified
+        boolean is_active
+        string google_id UK
+        datetime created_at
+        datetime updated_at
+    }
 
-*\*`ON DELETE RESTRICT`: matches PRD requirement that a category can't be deleted while expenses reference it, unless the user explicitly reassigns/cascades via the API layer (handled in `category_service.py`, not at the DB constraint level, so the app can show a proper warning instead of a raw DB error).*
+    REFRESH_TOKENS {
+        int id PK
+        int user_id FK
+        string token_hash UK
+        string device_info
+        string ip_address
+        boolean is_revoked
+        datetime expires_at
+        datetime created_at
+        datetime revoked_at
+    }
 
-**`budgets`**
-| Column | Type | Constraints |
-|---|---|---|
-| id | UUID / SERIAL | PK |
-| month | INTEGER | NOT NULL, CHECK (1–12) |
-| year | INTEGER | NOT NULL |
-| amount | DECIMAL(10,2) | NOT NULL, CHECK (amount > 0) |
-| category_id | FK → categories.id | nullable (null = overall budget) |
-| created_at / updated_at | TIMESTAMP | |
+    PASSWORD_RESET_TOKENS {
+        int id PK
+        int user_id FK
+        string token_hash UK
+        boolean used
+        datetime expires_at
+        datetime created_at
+    }
 
-*Analytics, budget-used-%, and alerts are computed dynamically at query time — not stored — matching both source PRDs and keeping the schema simple and bug-resistant (no risk of stale aggregates).*
+    CATEGORIES {
+        int id PK
+        string name
+        int user_id FK "nullable (NULL for system categories)"
+        datetime created_at
+    }
 
-### 6.2 Migrations
-- Alembic autogenerate used for schema changes; every migration reviewed manually before commit (autogenerate can miss constraint nuances).
-- Migration naming: `YYYYMMDD_HHMM_short_description.py`.
-- `alembic upgrade head` is part of the deploy pipeline on Render, run before the app starts serving traffic.
+    EXPENSES {
+        int id PK
+        int user_id FK
+        decimal amount
+        int category_id FK
+        string description
+        text notes
+        date date
+        string payment_method
+        datetime created_at
+        datetime updated_at
+    }
 
-### 6.3 Seeding
-- Idempotent seed script (`seed_data.py`) inserts starter categories in the backend database only if the table is empty.
-- Categories are dynamically loaded by the frontend from `/api/v1/categories`; categories are **never** hardcoded or seeded in the frontend directly.
-- Runs automatically when `SEED_ON_STARTUP=true` (local/dev), never blindly in production.
+    BUDGETS {
+        int id PK
+        int user_id FK
+        int month
+        int year
+        decimal amount
+        int category_id FK "nullable (NULL for overall)"
+        datetime created_at
+        datetime updated_at
+    }
+```
 
 ---
 
 ## 7. REST API Contract
 
-All endpoints prefixed `/api/v1` (per `routers/v1/` structure, §4.1). All list endpoints support pagination, filtering, and sorting per the query parameters below.
+All endpoints are versioned under `/api/v1`.
 
-### 7.1 Expenses
-| Method | Endpoint | Request Body | Response | Notes |
-|---|---|---|---|---|
-| POST | `/api/v1/expenses` | `{amount, category_id, description, date, payment_method?, notes?}` | `201` + expense object | Validates per §4.6/§6.1 |
-| GET | `/api/v1/expenses` | Query: `search, category_id, payment_method, amount_min, amount_max, date_from, date_to, sort, page, page_size` | `200` + `{items: [...], total, page, page_size}` | |
-| GET | `/api/v1/expenses/{id}` | — | `200` + expense object | `404` if missing |
-| PUT | `/api/v1/expenses/{id}` | Same as POST (partial allowed) | `200` + updated object | |
-| DELETE | `/api/v1/expenses/{id}` | — | `204` | |
-| GET | `/api/v1/expenses/export` | Query: `format=csv\|pdf`, plus filters (`search, category_id, date_from, ...`) | `200` + CSV or PDF file stream | Export format controlled by `format` query param |
+### 7.1 Authentication & Session Management (`/api/v1/auth`)
 
-### 7.2 Categories
-| Method | Endpoint | Notes |
-|---|---|---|
-| POST | `/api/v1/categories` | `{name}` → `201` |
-| GET | `/api/v1/categories` | Returns list with `expense_count` per category |
-| PUT | `/api/v1/categories/{id}` | Rename |
-| DELETE | `/api/v1/categories/{id}` | `400` if in use, unless `?reassign_to={id}` query param given |
+| Method | Endpoint | Access | Request Body | Response | Notes |
+|---|---|---|---|---|---|
+| POST | `/api/v1/auth/register` | Public | `{email, password, full_name?}` | `201` + `{user, access_token, token_type}` | Sets HttpOnly `refresh_token` cookie. |
+| POST | `/api/v1/auth/login` | Public | `{email, password}` | `200` + `{user, access_token, token_type}` | Sets HttpOnly `refresh_token` cookie. Rate limited. |
+| POST | `/api/v1/auth/google` | Public | `{credential}` | `200` + `{user, access_token, token_type}` | Verifies Google ID token / OpenID payload. |
+| POST | `/api/v1/auth/refresh` | Cookie | Optional body fallback `{refresh_token?}` | `200` + `{access_token, token_type}` | Rotates refresh token; updates cookie. Invalidation on reuse. |
+| POST | `/api/v1/auth/logout` | Cookie / Bearer | — | `204 No Content` | Revokes active session & clears cookie. |
+| POST | `/api/v1/auth/logout-all` | Protected | — | `200` + `{"status": "all_sessions_revoked"}` | Revokes all active refresh tokens for current user in DB. |
+| GET | `/api/v1/auth/me` | Protected | — | `200` + `UserResponse` | Returns active user profile. |
+| PUT | `/api/v1/auth/me` | Protected | `{full_name?, avatar_url?}` | `200` + `UserResponse` | Updates current user profile. |
+| POST | `/api/v1/auth/change-password` | Protected | `{old_password, new_password}` | `200` + `{"status": "password_updated"}` | Updates password and revokes other sessions. |
+| POST | `/api/v1/auth/forgot-password` | Public | `{email}` | `200` + `{"status": "success", "message": "..."}` | Generates reset token hash with 1h expiry. Rate limited. |
+| POST | `/api/v1/auth/reset-password` | Public | `{token, new_password}` | `200` + `{"status": "password_reset_success"}` | Resets password, marks token used, revokes all sessions. |
 
-### 7.3 Budget
-| Method | Endpoint | Notes |
-|---|---|---|
-| GET | `/api/v1/budgets?month=&year=` | Overall + per-category budgets for the period |
-| POST | `/api/v1/budgets` | `{month, year, amount, category_id?}` |
-| PUT | `/api/v1/budgets/{id}` | |
-| DELETE | `/api/v1/budgets/{id}` | |
+### 7.2 Expenses (`/api/v1/expenses`) — User Isolated
 
-### 7.4 Dashboard & Analytics
-| Method | Endpoint | Returns |
-|---|---|---|
-| GET | `/api/v1/dashboard` | Summary cards, recent expenses, highest expense, budget status |
-| GET | `/api/v1/analytics/daily?date=` | Daily total + breakdown |
-| GET | `/api/v1/analytics/monthly?month=&year=` | Monthly trend |
-| GET | `/api/v1/analytics/yearly?year=` | Month-by-month totals for the year |
-| GET | `/api/v1/analytics/categories?month=&year=` | Per-category totals + % of spend |
+All expense endpoints require `Authorization: Bearer <access_token>` and derive `user_id` from the token.
 
-### 7.5 Health
-| Method | Endpoint | Returns |
-|---|---|---|
-| GET | `/api/v1/health` | `{status, db, version}` — see §4.5. Note: some platforms expect an unversioned `/health` too; if Render's health-check config needs that, add a thin unversioned alias in `main.py` that proxies to this handler — don't duplicate logic. |
+| Method | Endpoint | Access | Query / Body | Response | Data Isolation Rule |
+|---|---|---|---|---|---|
+| POST | `/api/v1/expenses` | Protected | Body: `{amount, category_id, description, date, payment_method?, notes?}` | `201` + Expense | Assigns `user_id = current_user.id`. |
+| GET | `/api/v1/expenses` | Protected | Query: `search, category_id, payment_method, amount_min, amount_max, date_from, date_to, sort, page, page_size` | `200` + Paginated Expenses | Filters strictly by `user_id == current_user.id`. |
+| GET | `/api/v1/expenses/{id}` | Protected | — | `200` + Expense | Returns `404` if expense does not belong to user. |
+| PUT | `/api/v1/expenses/{id}` | Protected | Body: Partial/Full expense fields | `200` + Expense | Modifies only if `user_id == current_user.id` (`404` otherwise). |
+| DELETE | `/api/v1/expenses/{id}` | Protected | — | `204 No Content` | Deletes only if `user_id == current_user.id` (`404` otherwise). |
+| GET | `/api/v1/expenses/export` | Protected | Query: `format=csv\|pdf`, plus filter parameters | `200` + CSV / PDF Stream | Streams file containing only the authenticated user's records. |
 
-### 7.6 Contract Discipline
-- Every request/response shape defined as a Pydantic schema in `backend/app/schemas/` **and** mirrored as a TypeScript type in `frontend/types/` — treated as the single point of truth on each side.
-- Breaking changes to any endpoint require updating both simultaneously, in the same commit, to prevent FE/BE drift.
+### 7.3 Categories (`/api/v1/categories`) — Global Starter + User Custom
 
----
+| Method | Endpoint | Access | Request Body | Response | Notes |
+|---|---|---|---|---|---|
+| GET | `/api/v1/categories` | Protected | — | `200` + List of Categories | Returns system categories (`user_id IS NULL`) + user custom categories (`user_id == current_user.id`) with user-scoped `expense_count`. |
+| POST | `/api/v1/categories` | Protected | `{name}` | `201` + Category | Creates custom category with `user_id = current_user.id`. |
+| PUT | `/api/v1/categories/{id}` | Protected | `{name}` | `200` + Category | Only custom categories belonging to user can be edited. |
+| DELETE | `/api/v1/categories/{id}` | Protected | Query: `?reassign_to={id}` | `204 No Content` | Blocks deletion of system categories or other users' categories. |
 
-## 8. Non-Functional Requirements
+### 7.4 Budgets (`/api/v1/budgets`) — User Isolated
 
-| Category | Requirement |
-|---|---|
-| **Performance** | Paginated lists (20/page); dashboard makes a single aggregated call, not N+1 requests; charts render smoothly with up to several thousand expense rows. |
-| **Reliability** | DB operations wrapped in transactions; API always returns structured errors (§4.6); frontend gracefully handles all API failure states. |
-| **Security** | All inputs validated server-side (never trust client validation alone); secrets only via env vars; CORS restricted to known origins per environment; DB credentials never exposed to frontend or committed to git. |
-| **Maintainability** | Strict layering (router → service → model) on backend; typed, componentized frontend; migrations versioned; consistent error/response contract. |
-| **Portability** | Zero hardcoded environment assumptions — same codebase runs local or cloud via env vars only. |
-| **Testability** | Backend services unit-testable independent of HTTP layer; `tests/` covers CRUD, budget calculation, and alert logic at minimum. |
-| **Usability** | Add-expense flow completable in <30 seconds; all states (loading/empty/error/success) always present, never a blank screen. |
+| Method | Endpoint | Access | Query / Body | Response | Notes |
+|---|---|---|---|---|---|
+| GET | `/api/v1/budgets` | Protected | Query: `month, year, category_id` | `200` + List of Budgets | Scoped to `user_id == current_user.id`. |
+| POST | `/api/v1/budgets` | Protected | Body: `{month, year, amount, category_id?}` | `201`/`200` + Budget | Upserts budget scoped to `user_id == current_user.id`. |
+| PUT | `/api/v1/budgets/{id}` | Protected | Body: `{amount?, month?, year?, category_id?}` | `200` + Budget | Ownership verified; `404` if not found/owned. |
+| DELETE | `/api/v1/budgets/{id}` | Protected | — | `204 No Content` | Ownership verified; `404` if not found/owned. |
 
----
+### 7.5 Dashboard & Analytics (`/api/v1/dashboard`, `/api/v1/analytics/*`) — User Isolated
 
-## 9. DevOps & Deployment Design
-
-### 9.1 Local Development (no Docker)
-1. **Database:** Local PostgreSQL instance, or a free Supabase dev project — either works; connection via `DATABASE_URL` in `backend/.env`.
-2. **Backend:** `pip install -r requirements.txt` → `alembic upgrade head` → `uvicorn app.main:app --reload`.
-3. **Frontend:** `npm install` → `npm run dev`, pointing `NEXT_PUBLIC_API_BASE_URL` at `http://localhost:8000/api/v1`.
-4. Full manual + automated test pass locally before any Docker/deployment work begins.
-
-### 9.2 Production Dockerization
-- **`backend/Dockerfile`** — multi-stage build (install deps → copy app → run via `uvicorn`/`gunicorn` with `uvicorn.workers.UvicornWorker`), reads all config from environment at container start, runs `alembic upgrade head` as a pre-start step.
-- **`frontend/Dockerfile`** — only needed if not using Vercel's native build; if deploying to Vercel, Vercel's own build pipeline is used instead of this Dockerfile (Vercel doesn't require Docker). The Dockerfile is kept for portability (e.g. if you later self-host the frontend elsewhere) but isn't the deployment path for Vercel itself.
-- Both Dockerfiles live only in their respective `backend/` and `frontend/` folders — **not used or referenced during local development** (§2.2).
-
-### 9.3 Cloud Platform Mapping
-| Layer | Platform | Notes |
-|---|---|---|
-| Database | **Supabase** | Managed Postgres; `DATABASE_URL` from Supabase connection string set as a Render env var |
-| Backend | **Render** | Deploys `backend/Dockerfile`; env vars set in Render dashboard; health check path set to `/api/health` |
-| Frontend | **Vercel** | Deploys directly from `frontend/`; env vars (`NEXT_PUBLIC_API_BASE_URL`, pointing to the Render backend URL) set in Vercel dashboard |
-
-### 9.4 Deployment Order (to avoid chicken-and-egg bugs)
-1. Provision Supabase project → get `DATABASE_URL`.
-2. Deploy backend to Render with that `DATABASE_URL` → run migrations → confirm `/api/health` is green.
-3. Deploy frontend to Vercel with `NEXT_PUBLIC_API_BASE_URL` pointing at the live Render URL.
-4. Update backend `CORS_ORIGINS` to include the live Vercel domain, redeploy backend.
+| Method | Endpoint | Access | Query Params | Response | Ownership Scope |
+|---|---|---|---|---|---|
+| GET | `/api/v1/dashboard` | Protected | — | `200` + DashboardSummary | Calculates monthly spend, recent 5 expenses, highest expense, and budget status solely from `current_user.id`'s records. |
+| GET | `/api/v1/analytics/daily` | Protected | `date=YYYY-MM-DD` | `200` + DailyAnalytics | Aggregated solely for `current_user.id`. |
+| GET | `/api/v1/analytics/monthly` | Protected | `month=MM&year=YYYY` | `200` + MonthlyAnalytics | Daily spending curve for calendar days of month for `current_user.id`. |
+| GET | `/api/v1/analytics/yearly` | Protected | `year=YYYY` | `200` + YearlyAnalytics | Month-by-month spending trends for `current_user.id`. |
+| GET | `/api/v1/analytics/categories` | Protected | `month=MM&year=YYYY` | `200` + List of CategorySpending | Category % distribution for `current_user.id`. |
 
 ---
 
-## 10. Git & Repository Structure
+## 8. Non-Functional & Security Requirements
 
-```
-project-root/
-├── .gitignore              # root-level — OS files, IDE configs, general artifacts
-├── backend/
-│   └── .gitignore          # backend-specific — venv, __pycache__, .env, alembic local cache
-├── frontend/
-│   └── .gitignore          # frontend-specific — node_modules, .next, .env.local
-├── docs/
-│   ├── PRD.md
-│   └── SRS.md
-└── README.md
-```
-
-Each `.gitignore` is scoped to its own layer's tooling — prevents accidentally committing `node_modules/`, Python virtualenvs, or any `.env` file with real secrets.
+| Area | Requirement | Specification |
+|---|---|---|
+| **Password Security** | BCrypt / Argon2 | Hashed with BCrypt (12 rounds) or Argon2id. Plaintext never stored or logged. |
+| **JWT Access Tokens** | RFC 7519 HMAC-SHA256 | Signed using server secret (`JWT_SECRET_KEY`). Short lifespan (15 minutes). Claims: `sub` (user_id), `email`, `exp`, `iat`. |
+| **Refresh Tokens** | Cryptographic Random & SHA-256 Hashed | 64-character URL-safe string stored in DB as SHA-256 hash. Rotated on every use. Revoked on logout. |
+| **Token Reuse Detection** | Automatic Theft Mitigation | If a previously rotated refresh token is presented, all active sessions in the token family are immediately revoked. |
+| **Cookie Security** | HttpOnly, Secure, SameSite | Refresh token cookie set with `HttpOnly=True`, `Secure=True` (in production/HTTPS), `SameSite="Lax"`, `Path="/api/v1/auth"`. |
+| **Rate Limiting** | Brute-force Protection | In-memory / SlowAPI rate limiting applied to `/api/v1/auth/login` (5 req/min) and `/api/v1/auth/forgot-password` (3 req/min). |
+| **CORS Policy** | Restricted Dynamic Match | Starlette CORS middleware restricts requests to verified origins (`localhost:3000`, verified Vercel app domains) with `allow_credentials=True`. |
+| **Cross-User Data Isolation** | Backend Enforced | Zero trust on client identity parameters; all resource endpoints scope database queries directly to the authenticated user ID. |
 
 ---
 
-## 11. Acceptance Criteria (per module)
+## 9. Verification & Acceptance Criteria
 
-**Expense CRUD:** form validates client- and server-side; invalid amounts/future dates rejected at both layers; new expense reflects instantly in list and dashboard totals.
-
-**Categories:** deleting an in-use category is blocked or requires explicit reassignment; category list always reflects live expense counts.
-
-**Budget & Alerts:** color status matches thresholds exactly (green <85%, yellow 85–99.99%, red ≥100%); alerts are computed fresh on each dashboard load, never stale.
-
-**Search/Filter/Sort:** all combinable simultaneously; pagination metadata (`total`, `page`) always accurate.
-
-**Deployment:** app runs identically local vs. production with only env vars changed; `/api/health` returns `200` post-deploy before frontend is pointed at it.
-
----
-
-## 12. Traceability Note
-Every functional requirement in this SRS traces back to a PRD requirement ID (FR-1 through FR-34) and forward to a specific API endpoint (§7) and DB table (§6.1) — maintained this way intentionally so no requirement is implemented ambiguously or inconsistently across layers.
+1. **Registration & Login:**
+   - Registration creates a new user, hashes password with BCrypt, returns access token, and sets HttpOnly refresh token cookie.
+   - Duplicate email registration is rejected with `400 Bad Request` (`EMAIL_ALREADY_EXISTS`).
+   - Login validates credentials, issues fresh tokens, and records session in DB.
+2. **Google OAuth 2.0:**
+   - Google ID token verified on backend; links existing user by verified email or creates new user.
+3. **Token Flow & Rotation:**
+   - Access token expires after 15 minutes; client 401 interceptor automatically refreshes token via `/api/v1/auth/refresh` without user interruption.
+   - Using an expired or tampered access token returns `401 Unauthorized`.
+   - Refresh token rotation issues a new refresh token and marks the previous one revoked.
+   - Replay attack using a revoked refresh token triggers immediate invalidation of all user sessions.
+4. **Logout & Session Management:**
+   - `POST /auth/logout` revokes current refresh token and clears cookie.
+   - `POST /auth/logout-all` revokes all active refresh tokens for the user in the database.
+5. **Multi-User Data Isolation:**
+   - User A logs in and creates expenses and budgets.
+   - User B logs in and queries `/expenses`, `/budgets`, `/dashboard`, `/analytics` -> receives only User B's empty/own data.
+   - User B attempts `GET /expenses/{id_of_User_A}` -> returns `404 Not Found`.
+   - User B attempts `PUT /expenses/{id_of_User_A}` or `DELETE /expenses/{id_of_User_A}` -> returns `404 Not Found`.
+6. **Password Recovery:**
+   - `POST /auth/forgot-password` generates a single-use hashed token with 1-hour expiry.
+   - `POST /auth/reset-password` updates password and revokes all active sessions.

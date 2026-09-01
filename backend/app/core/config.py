@@ -12,6 +12,25 @@ class Settings(BaseSettings):
     SEED_ON_STARTUP: bool = True
     LOG_LEVEL: str = "INFO"
 
+    # JWT & Auth Settings (Environment-driven)
+    JWT_SECRET_KEY: str = "expenseflow_super_secret_jwt_key_change_in_production_2026_x9k2"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 60
+
+    # Cookie Settings
+    COOKIE_SECURE: bool = False
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_DOMAIN: Union[str, None] = None
+
+    # Google OAuth 2.0 Settings
+    GOOGLE_CLIENT_ID: Union[str, None] = None
+    GOOGLE_CLIENT_SECRET: Union[str, None] = None
+
+    # Frontend URL for password reset links & redirects
+    FRONTEND_URL: str = "http://localhost:3000"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:

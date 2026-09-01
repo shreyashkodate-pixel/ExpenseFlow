@@ -1,6 +1,6 @@
 # ExpenseFlow — Pending Work & Technical Roadmap
 
-**Last Updated:** August 29, 2026
+**Last Updated:** August 31, 2026
 
 This document tracks completed features, system architecture status, and technical roadmap items for ExpenseFlow.
 
@@ -46,6 +46,12 @@ This document tracks completed features, system architecture status, and technic
 - [x] Frontend multi-stage Docker container (`node:20-alpine`) with non-root security execution.
 - [x] Root `docker-compose.yml` for unified local/production orchestration.
 - [x] Live cloud deployments on Render (FastAPI) and Vercel (Next.js).
+
+---
+
+### 5. API Testing & Postman Collection
+- [x] Standardized Postman Collection v2.1.0 ([`docs/ExpenseFlow.postman_collection.json`](file:///Users/apple/Documents/Projects/ExpenseFlow/docs/ExpenseFlow.postman_collection.json)) covering all 18 endpoints across Health, Categories, Expenses, Budgets, and Dashboard/Analytics.
+- [x] Verified parameter validation, category in-use reassignment safeguards (`INVALID_REASSIGNMENT`), and PDF/CSV export streams.
 
 ---
 

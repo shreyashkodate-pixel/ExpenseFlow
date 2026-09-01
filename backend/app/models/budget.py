@@ -7,12 +7,14 @@ from ..core.database import Base
 
 if TYPE_CHECKING:
     from .category import Category
+    from .user import User
 
 
 class Budget(Base):
     __tablename__ = "budgets"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
@@ -30,6 +32,7 @@ class Budget(Base):
     )
 
     category: Mapped[Optional["Category"]] = relationship("Category", back_populates="budgets")
+    user: Mapped[Optional["User"]] = relationship("User", back_populates="budgets")
 
     __table_args__ = (
         CheckConstraint("month >= 1 AND month <= 12", name="check_budget_month_valid"),

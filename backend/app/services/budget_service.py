@@ -17,11 +17,17 @@ from ..core.exceptions import ResourceNotFoundException, BadRequestException
 
 def get_budgets(
     db: Session,
+    user_id: int,
     month: Optional[int] = None,
     year: Optional[int] = None,
     category_id: Optional[int] = None,
 ) -> List[Budget]:
-    query = db.query(Budget).options(joinedload(Budget.category))
+    """Retrieve budgets strictly isolated to the authenticated user."""
+    query = (
+        db.query(Budget)
+        .options(joinedload(Budget.category))
+        .filter(Budget.user_id == user_id)
+    )
 
     if month is not None:
         query = query.filter(Budget.month == month)
@@ -33,11 +39,12 @@ def get_budgets(
     return query.order_by(Budget.year.desc(), Budget.month.desc()).all()
 
 
-def get_budget_by_id(db: Session, budget_id: int) -> Budget:
+def get_budget_by_id(db: Session, budget_id: int, user_id: int) -> Budget:
+    """Retrieve single budget verifying ownership."""
     budget = (
         db.query(Budget)
         .options(joinedload(Budget.category))
-        .filter(Budget.id == budget_id)
+        .filter(Budget.id == budget_id, Budget.user_id == user_id)
         .first()
     )
     if not budget:
@@ -48,18 +55,23 @@ def get_budget_by_id(db: Session, budget_id: int) -> Budget:
     return budget
 
 
-def create_or_update_budget(db: Session, schema: BudgetCreate) -> Budget:
-    # Verify category exists if provided
+def create_or_update_budget(db: Session, schema: BudgetCreate, user_id: int) -> Budget:
+    """Create or update a budget target for the authenticated user."""
+    # Verify category exists (system or user category)
     if schema.category_id is not None:
-        cat = db.query(Category).filter(Category.id == schema.category_id).first()
+        cat = db.query(Category).filter(
+            Category.id == schema.category_id,
+            (Category.user_id.is_(None) | (Category.user_id == user_id))
+        ).first()
         if not cat:
             raise BadRequestException(
                 detail=f"Category with ID {schema.category_id} does not exist",
                 error_code="INVALID_CATEGORY",
             )
 
-    # Check if budget already exists for this month, year, and category_id
+    # Check if budget already exists for this user, month, year, and category_id
     query = db.query(Budget).filter(
+        Budget.user_id == user_id,
         Budget.month == schema.month,
         Budget.year == schema.year,
     )
@@ -74,9 +86,10 @@ def create_or_update_budget(db: Session, schema: BudgetCreate) -> Budget:
         existing.amount = schema.amount
         db.commit()
         db.refresh(existing)
-        return get_budget_by_id(db, existing.id)
+        return get_budget_by_id(db, existing.id, user_id)
 
     budget = Budget(
+        user_id=user_id,
         month=schema.month,
         year=schema.year,
         amount=schema.amount,
@@ -85,14 +98,18 @@ def create_or_update_budget(db: Session, schema: BudgetCreate) -> Budget:
     db.add(budget)
     db.commit()
     db.refresh(budget)
-    return get_budget_by_id(db, budget.id)
+    return get_budget_by_id(db, budget.id, user_id)
 
 
-def update_budget(db: Session, budget_id: int, schema: BudgetUpdate) -> Budget:
-    budget = get_budget_by_id(db, budget_id)
+def update_budget(db: Session, budget_id: int, schema: BudgetUpdate, user_id: int) -> Budget:
+    """Update budget verifying ownership."""
+    budget = get_budget_by_id(db, budget_id, user_id)
 
     if schema.category_id is not None and schema.category_id != budget.category_id:
-        cat = db.query(Category).filter(Category.id == schema.category_id).first()
+        cat = db.query(Category).filter(
+            Category.id == schema.category_id,
+            (Category.user_id.is_(None) | (Category.user_id == user_id))
+        ).first()
         if not cat:
             raise BadRequestException(
                 detail=f"Category with ID {schema.category_id} does not exist",
@@ -109,27 +126,35 @@ def update_budget(db: Session, budget_id: int, schema: BudgetUpdate) -> Budget:
 
     db.commit()
     db.refresh(budget)
-    return get_budget_by_id(db, budget.id)
+    return get_budget_by_id(db, budget.id, user_id)
 
 
-def delete_budget(db: Session, budget_id: int) -> None:
-    budget = get_budget_by_id(db, budget_id)
+def delete_budget(db: Session, budget_id: int, user_id: int) -> None:
+    """Delete budget verifying ownership."""
+    budget = get_budget_by_id(db, budget_id, user_id)
     db.delete(budget)
     db.commit()
 
 
-def get_budget_status(db: Session, month: int, year: int) -> OverallBudgetStatusResponse:
-    # 1. Fetch budgets for the period
-    budgets = get_budgets(db, month=month, year=year)
+def get_budget_status(db: Session, month: int, year: int, user_id: int) -> OverallBudgetStatusResponse:
+    """Calculate real-time budget utilization strictly from the authenticated user's records."""
+    # 1. Fetch budgets for user in the period
+    budgets = get_budgets(db, user_id=user_id, month=month, year=year)
 
-    # 2. Fetch expenses for the period grouped by category
-    expense_query = db.query(
-        Expense.category_id,
-        func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("total_spent"),
-    ).filter(
-        extract("month", Expense.date) == month,
-        extract("year", Expense.date) == year,
-    ).group_by(Expense.category_id).all()
+    # 2. Fetch expenses for user in the period grouped by category
+    expense_query = (
+        db.query(
+            Expense.category_id,
+            func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("total_spent"),
+        )
+        .filter(
+            Expense.user_id == user_id,
+            extract("month", Expense.date) == month,
+            extract("year", Expense.date) == year,
+        )
+        .group_by(Expense.category_id)
+        .all()
+    )
 
     category_spent_map = {cat_id: spent for cat_id, spent in expense_query}
     overall_spent = sum(category_spent_map.values(), Decimal("0.00"))

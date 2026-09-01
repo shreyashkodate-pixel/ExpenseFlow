@@ -17,3 +17,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Postman Local Workspace Cache
+.postman/
+docs/.postman/
+docs/postman/

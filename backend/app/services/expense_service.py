@@ -6,12 +6,12 @@ from sqlalchemy import func, or_
 from ..models.expense import Expense
 from ..models.category import Category
 from ..schemas.expense import ExpenseCreate, ExpenseUpdate
-from ..schemas.common import PaginatedResponse
 from ..core.exceptions import ResourceNotFoundException, BadRequestException
 
 
 def get_expenses(
     db: Session,
+    user_id: int,
     search: Optional[str] = None,
     category_id: Optional[int] = None,
     payment_method: Optional[str] = None,
@@ -24,7 +24,12 @@ def get_expenses(
     page: int = 1,
     page_size: int = 20,
 ) -> Tuple[List[Expense], int]:
-    query = db.query(Expense).options(joinedload(Expense.category))
+    """Retrieve paginated expenses strictly isolated to the authenticated user."""
+    query = (
+        db.query(Expense)
+        .options(joinedload(Expense.category))
+        .filter(Expense.user_id == user_id)
+    )
 
     if search:
         search_term = f"%{search.strip()}%"
@@ -69,11 +74,12 @@ def get_expenses(
     return items, total
 
 
-def get_expense_by_id(db: Session, expense_id: int) -> Expense:
+def get_expense_by_id(db: Session, expense_id: int, user_id: int) -> Expense:
+    """Retrieve single expense verifying ownership. Returns 404 if not owned by user."""
     expense = (
         db.query(Expense)
         .options(joinedload(Expense.category))
-        .filter(Expense.id == expense_id)
+        .filter(Expense.id == expense_id, Expense.user_id == user_id)
         .first()
     )
     if not expense:
@@ -84,9 +90,13 @@ def get_expense_by_id(db: Session, expense_id: int) -> Expense:
     return expense
 
 
-def create_expense(db: Session, schema: ExpenseCreate) -> Expense:
-    # Verify category exists
-    category = db.query(Category).filter(Category.id == schema.category_id).first()
+def create_expense(db: Session, schema: ExpenseCreate, user_id: int) -> Expense:
+    """Create a new expense assigned strictly to the authenticated user."""
+    # Verify category exists (must be system category or user's custom category)
+    category = db.query(Category).filter(
+        Category.id == schema.category_id,
+        (Category.user_id.is_(None) | (Category.user_id == user_id))
+    ).first()
     if not category:
         raise BadRequestException(
             detail=f"Category with ID {schema.category_id} does not exist",
@@ -94,6 +104,7 @@ def create_expense(db: Session, schema: ExpenseCreate) -> Expense:
         )
 
     expense = Expense(
+        user_id=user_id,
         amount=schema.amount,
         category_id=schema.category_id,
         description=schema.description.strip(),
@@ -104,14 +115,18 @@ def create_expense(db: Session, schema: ExpenseCreate) -> Expense:
     db.add(expense)
     db.commit()
     db.refresh(expense)
-    return get_expense_by_id(db, expense.id)
+    return get_expense_by_id(db, expense.id, user_id)
 
 
-def update_expense(db: Session, expense_id: int, schema: ExpenseUpdate) -> Expense:
-    expense = get_expense_by_id(db, expense_id)
+def update_expense(db: Session, expense_id: int, schema: ExpenseUpdate, user_id: int) -> Expense:
+    """Update an expense verifying ownership."""
+    expense = get_expense_by_id(db, expense_id, user_id)
 
     if schema.category_id is not None and schema.category_id != expense.category_id:
-        category = db.query(Category).filter(Category.id == schema.category_id).first()
+        category = db.query(Category).filter(
+            Category.id == schema.category_id,
+            (Category.user_id.is_(None) | (Category.user_id == user_id))
+        ).first()
         if not category:
             raise BadRequestException(
                 detail=f"Category with ID {schema.category_id} does not exist",
@@ -132,10 +147,11 @@ def update_expense(db: Session, expense_id: int, schema: ExpenseUpdate) -> Expen
 
     db.commit()
     db.refresh(expense)
-    return get_expense_by_id(db, expense.id)
+    return get_expense_by_id(db, expense.id, user_id)
 
 
-def delete_expense(db: Session, expense_id: int) -> None:
-    expense = get_expense_by_id(db, expense_id)
+def delete_expense(db: Session, expense_id: int, user_id: int) -> None:
+    """Delete an expense verifying ownership."""
+    expense = get_expense_by_id(db, expense_id, user_id)
     db.delete(expense)
     db.commit()

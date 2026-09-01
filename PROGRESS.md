@@ -1,6 +1,6 @@
 # ExpenseFlow — Progress Log
 
-**Last Updated:** August 29, 2026
+**Last Updated:** August 31, 2026
 
 ---
 
@@ -107,3 +107,13 @@ Bootstrapped clean directory structure without clutter:
 - **Service Worker & In-App Install**:
   - Implemented [`public/sw.js`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/public/sw.js) for static asset caching and offline resilience.
   - Created [`PWAInstall.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/components/shared/PWAInstall.tsx) with in-app install prompt banner, sidebar install button, and iOS step-by-step guidance modal.
+
+---
+
+### 10. Automated API Testing Suite & Postman Collection
+- **Postman Collection v2.1.0 ([`docs/ExpenseFlow.postman_collection.json`](file:///Users/apple/Documents/Projects/ExpenseFlow/docs/ExpenseFlow.postman_collection.json))**:
+  - Created complete Postman schema with parameterized environment variables (`base_url`, `category_id`, `expense_id`, `budget_id`).
+  - Categorized request suites for **Health**, **Categories**, **Expenses** (CRUD, search, filtering, CSV/PDF export), **Budgets** (CRUD and real-time status utilization calculation), and **Dashboard & Analytics** (daily, monthly, yearly, category distributions).
+- **Live & Local Verification**:
+  - Executed and validated lifecycle tests against local server (`http://localhost:8000/api/v1`) and Render cloud deployment.
+  - Verified edge cases: self-reassignment prevention (`INVALID_REASSIGNMENT`), in-use category cascade safety, and entity ID isolation between categories and expenses.

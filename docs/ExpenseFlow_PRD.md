@@ -1,39 +1,45 @@
 # Product Requirements Document (PRD)
 ## ExpenseFlow — Personal Expense & Budget Tracker
-*(Merged from FinTrack PRD + Expense Tracker PRD — best of both)*
 
-**Document Version:** 1.0 (Merged)
-**Status:** Draft
-**Platform:** Responsive Web App
+**Document Version:** 2.0  
+**Status:** Approved & Active  
+**Platform:** Responsive Web App & Progressive Web App (PWA)
 
 ---
 
 ## 1. Overview
 
-**Summary:** ExpenseFlow is a personal finance web app that lets a user log daily expenses into categories they define themselves, instantly see the impact on totals, charts, and a live budget, and get proactive alerts before they overspend — turning scattered notes/spreadsheet habits into one searchable, analytics-driven place to track spending.
+**Summary:** ExpenseFlow is a smart, privacy-focused personal finance web application that allows users to create personal accounts, log daily expenses into dynamic categories, track real-time budgets with proactive visual alerts, analyze spending habits over time, and export financial reports. Each user has their own private space with complete data privacy and security.
 
-**Tech Stack:** Next.js + TypeScript + Tailwind CSS + shadcn/ui + Recharts (frontend) · FastAPI + Pydantic + SQLAlchemy + Alembic (backend) · PostgreSQL (database)
+**Core Capabilities:**
+- Personal user accounts (Email/Password registration and fast Google Sign-In).
+- Private and secure expense logging, editing, and categorizing.
+- Real-time budget progress with color-coded spending alerts.
+- Interactive daily, monthly, and yearly analytics trends.
+- Automated CSV and PDF expense report exports.
+- Mobile-friendly Progressive Web App (PWA) with light and dark themes.
 
 ---
 
 ## 2. Problem Statement
 
-Most people don't track expenses properly — they forget to log them, or use notes/spreadsheets that are hard to search or understand at a glance. As a result, they can't easily answer:
+Most individuals struggle to manage their personal finances because manual note-taking or spreadsheets are tedious, hard to search, lack visual insight, and offer no proactive budget guidance. Furthermore, shared or unauthenticated apps risk exposing private financial records.
 
-- "How much have I spent?"
-- "Where is my money going?"
-- "Am I within budget, or over it?"
-- "Is this month better or worse than last month?"
+Users need answers to essential financial questions:
+- *"How much did I spend this month, this week, or today?"*
+- *"Which categories are consuming the largest share of my budget?"*
+- *"Am I on track with my monthly budget, or approaching my spending limit?"*
+- *"Can I securely access my private records across all my personal devices?"*
 
-ExpenseFlow solves this with one place to log expenses, dynamic categories that match how the user actually thinks about spending, and a dashboard that turns raw entries into real insight and proactive budget alerts.
+ExpenseFlow solves this with a fast, private, and intuitive experience designed to make expense tracking effortless.
 
 ---
 
 ## 3. Product Vision
 
-> **Record → Organize → Analyze → Budget → Improve**
+> **Sign In → Record → Organize → Budget → Analyze → Improve**
 
-V1 focuses only on this core loop. Login, recurring expenses, bank sync, multi-currency, and notifications infrastructure are deferred to later phases (Section 14) — this keeps V1 simple to build, test, and actually use.
+The product is built around a frictionless daily logging loop backed by strong account privacy, ensuring users can access their financial records securely from anywhere without complicated setup.
 
 ---
 
@@ -41,256 +47,159 @@ V1 focuses only on this core loop. Login, recurring expenses, bank sync, multi-c
 
 | Goal | Why It Matters |
 |---|---|
-| Add an expense in under 30 seconds | Easy logging = the user keeps using it |
-| Show spending visually, at multiple time grains | Understand "where money is going" without effort |
-| Show a live remaining budget with proactive alerts | Turns tracking into real budgeting, not just note-taking |
-| Make old expenses easy to find | A log is useless if you can't search/filter/sort it |
-| Build on a clean, scalable architecture | Later phases shouldn't require rebuilding the core |
+| **Fast Logging (<30 seconds)** | Low friction ensures users stay consistent with expense logging. |
+| **Instant Account Access** | Sign in easily with Email/Password or 1-click Google Sign-In. |
+| **Strict Privacy & Isolation** | Every user’s financial records remain completely private and confidential. |
+| **Clear Visual Budgeting** | Live progress bars and status indicators prevent month-end overspending. |
+| **Effortless Search & Export** | Quick filters, sorting, and one-click PDF/CSV reports make reviewing painless. |
 
-**Success Metrics:**
-- Expenses logged per active user per week
-- % of users who set a budget goal
-- Time to add a single expense (target: <30s)
-- Search/filter usage frequency
-- 30-day retention
+**Key Success Metrics:**
+- Weekly active users and expenses logged per user.
+- Account retention and multi-device sign-in rate.
+- % of users who configure a monthly budget target.
+- Search, filter, and report download frequency.
 
 ---
 
 ## 5. Target Users & Persona
 
-**Primary:** An individual (e.g., a student or budget-conscious professional) who wants to manually track their own spending, stay under a monthly budget, and understand spending patterns without a complex finance platform.
-
-**Pain points:** Forgets small expenses; doesn't know which category eats the most money; struggles to stay within budget; finds full finance apps overkill.
-
-**Not for V1:** Teams/families sharing an account, businesses, investment tracking.
+* **Primary Persona:** College students, freelancers, working professionals, and budget-conscious individuals who want a clean, distraction-free tool to track personal spending and stay within budget.
+* **Core Needs:** Fast mobile and desktop logging, private personal account, clear visual summaries, custom categories, and painless report generation.
+* **Privacy Requirement:** Multiple users can use the platform independently; no user can ever see or modify another user's financial entries.
 
 ---
 
-## 6. Scope
+## 6. Product Scope
 
-### ✅ In Scope (V1)
-- Full expense CRUD (Add / View / Detail / Edit / Delete)
-- **User-defined dynamic categories** (create/rename/delete — not a fixed enum), with starter categories pre-seeded in the backend database and fetched dynamically via API (never hardcoded in frontend)
-- Payment method tagging (Cash, GPay, Credit Card, UPI, Bank Transfer, Others, etc. — tagging only; online payment gateway processing is out of scope)
-- Dashboard: summary cards, category pie/donut chart, monthly trend chart, budget progress, recent + highest expenses
-- Daily / Monthly / Yearly analytics views
-- Search (description, category, payment method) + Filters (category, payment method, amount range, date range, quick filters like Today/This Week/This Month/Last Month) + Sort (newest, oldest, highest, lowest) — usable together
-- Pagination (20/page)
-- Budget: overall monthly + optional per-category, with live remaining-balance and color-coded status
-- Rule-based spending alerts (no notification infra required)
-- Light/dark mode
-- Full field validation, and empty/loading/error/no-results/success states everywhere
-- Single fixed currency (₹ INR, 2 decimals)
-- **CSV and PDF export**
+### ✅ Included in Product
+* **User Accounts & Security:**
+  * User registration (Sign Up) and login (Sign In) with email and password.
+  * One-click **Sign in with Google** (Google OAuth).
+  * Password recovery lifecycle (Forgot Password request & Reset Password).
+  * In-app password change and account profile management.
+  * Secure sign-out and "Sign out from all devices" option.
+  * Automatic session continuation without unexpected logouts.
+* **Expense Management:**
+  * Add, view, search, filter, edit, and delete private expenses.
+  * Dynamic categories (built-in starter categories + user's own custom categories).
+  * Payment method tags (*Cash, GPay, Credit Card, UPI, Bank Transfer, Others*).
+  * Date selection, amount, notes, and receipt descriptions.
+* **Budgeting & Visual Alerts:**
+  * Monthly overall spending targets and category-specific budget limits.
+  * Live remaining balance updates on every entry.
+  * Color-coded status indicators (*On Track, Near Limit, Over Budget*).
+* **Analytics & Reports:**
+  * Interactive summary dashboard with cards and breakdown charts.
+  * Daily, Monthly, and Yearly spending trend views.
+  * Category distribution breakdowns.
+  * Instant **CSV and PDF export** for any filtered date range or category.
+* **Experience & Multi-Device Support:**
+  * Light and dark theme toggle.
+  * Full mobile responsiveness with slide-over drawer and mobile card layouts.
+  * Progressive Web App (PWA) installation for Android, iOS, and desktop.
 
-### ❌ Out of Scope (V1)
-- Login / multi-user accounts / auth (single-user app; see Section 11 risk note)
-- Online payment gateway integrations (no payment processing/gateways)
-- Multiple currencies, bank/UPI/SMS auto-import, income tracking
-- Recurring expenses, push/email notifications
-- Native mobile app (responsive web only)
-- Excel export (CSV and PDF are included in V1)
+### ❌ Out of Scope
+* Payment processing or merchant gateways (the app records payments; it does not process financial transactions).
+* Multi-user shared joint accounts / shared household ledgers (each account is private).
+* Bank account direct syncing or automated SMS scrapers.
 
 ---
 
 ## 7. Functional Requirements
 
-### 7.1 Navigation
-| ID | Requirement | Priority |
+### 7.1 User Account & Security Management
+| ID | Requirement | Description |
 |---|---|---|
-| FR-1 | Primary nav: Dashboard · Expenses · Analytics · Budget · Settings. "Add Expense" accessible from Dashboard and Expenses. | P0 |
+| **FR-A1** | **Sign Up / Register** | Users can create an account using their email address, password, and optional full name. |
+| **FR-A2** | **Sign In / Login** | Users can log into their account securely with their registered credentials. |
+| **FR-A3** | **Sign in with Google** | Users can instantly create or sign in to their account using their Google account. |
+| **FR-A4** | **Forgot Password** | Users who forget their password can request a secure reset link/token sent to their email. |
+| **FR-A5** | **Reset Password** | Users can safely set a new password using their verified reset link. |
+| **FR-A6** | **Change Password** | Authenticated users can update their account password from the Settings page. |
+| **FR-A7** | **Secure Sign Out** | Users can sign out of their current session with one click. |
+| **FR-A8** | **Sign Out All Devices** | Users can terminate all active sessions across all devices for security. |
+| **FR-A9** | **User Data Isolation** | Each user only sees and manages their own expenses, budgets, and custom categories. |
 
-### 7.2 Expense Fields & Validation
-Fields: Amount, Category (dynamic, pick-or-create), Description/Title (required, ≤50 chars), Date (defaults today, no future dates), Payment Method (optional), Notes (optional).
-
-| Rule | Why |
-|---|---|
-| Amount must be a positive number | Prevents bad data skewing totals/charts |
-| Date cannot be in the future | Keeps the log honest |
-| Description required, max 50 chars | Keeps the list scannable |
-
-### 7.3 Expense CRUD
-| ID | Action | Priority | User Story |
-|---|---|---|---|
-| FR-2 | Add | P0 | As a user, I want to quickly add an expense so logging doesn't feel like a chore. |
-| FR-3 | View (paginated list) | P0 | As a user, I want to view my past expenses to review my history. |
-| FR-4 | View Details (modal/dialog) | P0 | As a user, I want to open one expense and see its full detail without a page change. |
-| FR-5 | Edit | P0 | As a user, I want to correct a past expense so my records stay accurate. |
-| FR-6 | Delete (with confirmation) | P0 | As a user, I want to delete an expense safely, without losing data by accident. |
-
-### 7.4 Category Management (dynamic — key differentiator)
-| ID | Action | Priority | User Story |
-|---|---|---|---|
-| FR-7 | Create category inline while logging an expense, or from a category list | P0 | So my spending is organized the way I actually think about it. |
-| FR-8 | Rename a category | P0 | So I can keep organization consistent over time. |
-| FR-9 | Delete a category — only if unused, or reassign/cascade with a warning | P0 | So I don't accidentally orphan expense data. |
-| FR-10 | View category list with expense counts | P1 | So I understand my category usage. |
-| FR-11 | Ship with starter categories (Food, Transport, Rent, Shopping, Bills, Entertainment, Health, Education, Other) seeded in the database and fetched via API (never hardcoded in frontend) | P2 | So the app isn't empty on first use. |
-
-### 7.5 Search, Filter & Sort
-| ID | Requirement | Priority |
+### 7.2 Navigation & Layout
+| ID | Requirement | Description |
 |---|---|---|
-| FR-12 | Search by description, category, payment method | P0 |
-| FR-13 | Filter by category, payment method, amount range, date range | P0 |
-| FR-14 | Quick filters: Today / This Week / This Month / Last Month / This Year / Custom Range | P1 |
-| FR-15 | Sort: newest, oldest, highest amount, lowest amount | P0 |
-| FR-16 | All of the above usable together, backend-paginated (20/page) | P0 |
+| **FR-1** | **Primary Navigation** | Accessible navigation across Dashboard, Expenses, Analytics, Budget Goals, and Settings, plus user profile avatar and quick Sign Out. |
+| **FR-2** | **Protected Access** | Unauthenticated visitors attempting to access app features are automatically guided to the Sign In page. |
 
-### 7.6 Dashboard
-| ID | Requirement | Priority |
+### 7.3 Expense Logging & Management
+| ID | Requirement | Description |
 |---|---|---|
-| FR-17 | Summary cards: total spent, this month, today, remaining budget, highest expense, top category | P0 |
-| FR-18 | Recent expenses list (snapshot) | P0 |
-| FR-19 | Pie/donut chart — category breakdown, interactive (hover shows name/amount/%) | P0 |
-| FR-20 | Bar/line chart — spending over time | P0 |
-| FR-21 | Budget progress with color status | P0 |
-| FR-22 | Month-over-month comparison with % change | P1 |
-| FR-23 | Top categories ranked, average daily/weekly spend | P2 |
+| **FR-3** | **Add Expense** | Quick form with Amount (>0), Category selection, Title (≤50 chars), Date (up to today), Payment Method, and Notes. |
+| **FR-4** | **View Expenses** | Paginated list with desktop table and mobile cards displaying all user-logged transactions. |
+| **FR-5** | **Edit Expense** | Modal to edit any previous transaction, updating charts and totals instantly. |
+| **FR-6** | **Delete Expense** | Safe deletion with confirmation dialog. |
 
-### 7.7 Analytics
-| ID | Requirement | Priority |
+### 7.4 Category Organization
+| ID | Requirement | Description |
 |---|---|---|
-| FR-24 | Daily spending (bar chart) | P1 |
-| FR-25 | Monthly spending trend | P0 |
-| FR-26 | Yearly spending across months of a selected year | P1 |
-| FR-27 | Category breakdown: total, % of spend, highest category | P0 |
+| **FR-7** | **Starter Categories** | Built-in starter categories (*Food, Transport, Rent, Shopping, Bills, Entertainment, Health, Education, Other*). |
+| **FR-8** | **Custom Categories** | Users can create their own custom categories matching their personal spending habits. |
+| **FR-9** | **Category Management** | Users can rename or delete their custom categories, with reassignment options if expenses exist. |
 
-### 7.8 Budget & Alerts
-The user sets a monthly (and optionally per-category) limit. The app shows spent-so-far, remaining = goal − spent, and a color status.
-
-| Usage | Status | Color |
+### 7.5 Search, Filters & Sorting
+| ID | Requirement | Description |
 |---|---|---|
-| < 85% | On track | Green |
-| 85%–99.99% | Near limit | Yellow |
-| ≥ 100% | Over budget | Red |
+| **FR-10** | **Multi-Field Search** | Search expenses by title, category, or payment method. |
+| **FR-11** | **Dynamic Filters** | Filter by category, payment method, amount range, and date range (*Today, This Week, This Month, Custom*). |
+| **FR-12** | **Sorting** | Sort by newest, oldest, highest amount, or lowest amount. |
 
-| ID | Requirement | Priority |
+### 7.6 Dashboard & Spending Insights
+| ID | Requirement | Description |
 |---|---|---|
-| FR-28 | Set overall + per-category budget; live remaining-balance updates on every add | P0 |
-| FR-29 | Alert: budget warning at ~80% usage | P1 |
-| FR-30 | Alert: budget exceeded at ≥100% | P1 |
-| FR-31 | Alert: category spend higher than previous month | P2 |
-| FR-32 | Alerts calculated dynamically — no separate notification table/service needed | P0 |
+| **FR-13** | **Summary Cards** | Total spent this month, today's spending, remaining budget, and highest transaction. |
+| **FR-14** | **Interactive Charts** | Visual category donut chart and monthly spending comparison graph. |
+| **FR-15** | **Recent Transactions** | Snapshot list of recent 5 expenses for quick review. |
 
-### 7.9 Export
-| ID | Requirement | Priority |
+### 7.7 Budget Goals & Spending Alerts
+| ID | Requirement | Description |
 |---|---|---|
-| FR-33 | Export filtered or full expense list as CSV or PDF (date, category, amount, payment method, description) | P2 |
+| **FR-16** | **Monthly Budget Target** | Set an overall monthly spending ceiling and optional category-specific targets. |
+| **FR-17** | **Visual Status Alerts** | Color-coded feedback: Green (*On Track <80%*), Yellow (*Near Limit 80–99%*), Red (*Over Budget ≥100%*). |
 
-### 7.10 Data Integrity Principle
-| ID | Requirement | Priority |
+### 7.8 Export & Reports
+| ID | Requirement | Description |
 |---|---|---|
-| FR-34 | No hardcoded/demo data at any stage — all data dynamically created, stored, and fetched from the real data layer | P0 |
+| **FR-18** | **CSV Export** | Download spreadsheet-compatible CSV file containing all filtered expenses. |
+| **FR-19** | **PDF Report Export** | Generate formatted PDF financial summary document with transaction records. |
 
 ---
 
-## 8. Key User Flows
-
-| Flow | Steps |
-|---|---|
-| Add an expense | Expenses → Add New → pick/create category → Save → appears in list, dashboard updates live |
-| Check spending | Dashboard → totals, charts, budget status, alerts |
-| Find a past expense | Expenses → Search/Filter/Sort → Edit or Delete |
-| Set a budget | Budget → set limit → Dashboard shows live remaining + color status + alerts as spend approaches limit |
-
----
-
-## 9. Non-Functional Requirements
-
-**Performance:** Pagination on all lists; dashboard avoids unnecessary API calls; charts render efficiently even at scale; no hardcoded/static values at any data volume.
-
-**Reliability:** Database operations handled safely; API errors return proper HTTP status codes (200/201/400/404/422/500); frontend converts technical errors into user-facing messages; each phase fully functional (run → test → deploy) before the next begins.
-
-**Security:** Even without auth in V1 — validate all API inputs; no hardcoded DB credentials (use env vars); CORS configured appropriately; sensitive DB details never exposed to frontend.
-
-**Maintainability:** Backend modular (routers / services / schemas / models separated); SQLAlchemy models separate from Pydantic schemas; migrations via Alembic; frontend components reusable.
-
-**Scalability:** Architecture supports later phases (Section 14) without major rework.
-
-**Responsiveness:** Works across desktop, tablet, and mobile browsers; tables remain usable on small screens.
-
-**Deployment (V1):** Local/private deployment — no public internet exposure, since there's no auth layer yet.
-
----
-
-## 10. Technical Architecture
+## 8. Key User Journeys
 
 ```
-FRONTEND (Next.js + TS + Tailwind + shadcn/ui + Recharts)
-        │  REST API / JSON
-        ↓
-BACKEND (FastAPI + Pydantic + SQLAlchemy + Alembic)
-        │  SQL
-        ↓
-PostgreSQL
+Journey 1: Getting Started
+[Visit App] ──> [Sign Up or Sign in with Google] ──> [Land on Dashboard] ──> [Set Monthly Budget]
+
+Journey 2: Daily Expense Logging
+[Open App / PWA] ──> [Tap 'Add Expense'] ──> [Select Category & Amount] ──> [Save] ──> [Charts & Budget Update Instantly]
+
+Journey 3: Reviewing & Exporting
+[Go to Expenses] ──> [Filter 'This Month' & 'Food'] ──> [Click 'Export PDF'] ──> [Download Statement]
+
+Journey 4: Account Security
+[Go to Settings] ──> [Change Password or 'Sign Out All Devices'] ──> [Sessions Invalidated Safely]
 ```
 
-### Core API Surface
-| Method | Endpoint | Description |
+---
+
+## 9. Non-Functional & Quality Standards
+
+* **Privacy & Isolation:** Strict separation of user records. No user can view or alter data belonging to another account.
+* **Speed & Performance:** Pages load quickly; adding an expense updates summaries in real time.
+* **Security Standards:** Industry-standard password encryption, secure session tokens, and protected API endpoints.
+* **Device Responsiveness:** Works smoothly on mobile phones, tablets, and widescreen desktop monitors.
+* **Theme Preference:** Supports both high-contrast Dark Mode and clean Light Mode.
+
+---
+
+## 10. Release & Future Vision
+
+| Phase | Focus | Highlights |
 |---|---|---|
-| POST/GET/PUT/DELETE | `/api/expenses`, `/api/expenses/{id}` | Expense CRUD |
-| GET | `/api/dashboard` | Dashboard summary |
-| GET | `/api/analytics/{daily\|monthly\|yearly\|categories}` | Analytics |
-| POST/GET/PUT/DELETE | `/api/categories`, `/api/categories/{id}` | Category CRUD |
-| GET/POST/PUT/DELETE | `/api/budget` | Budget CRUD |
-| GET | `/api/expenses/export` | CSV and PDF export (`?format=csv` or `?format=pdf`) |
-
-### Core Tables
-`expenses` (id, amount, category_id, description, date, payment_method, timestamps) · `categories` (id, name, created_at) · `budgets` (id, month, year, amount, category_id nullable, timestamps). Analytics and alerts are calculated dynamically, not stored.
-
----
-
-## 11. Assumptions & Risks
-
-**Assumptions:** Single-user app, no login in V1; one fixed currency (INR); budget defaults to monthly; expense dates today-or-earlier only; local/private deployment.
-
-**Risks:**
-- **No data isolation** — without auth, this is single-user only; converting to a real multi-user product later requires adding auth and user ownership (flagged explicitly for that phase)
-- Scope creep if later-phase features get pulled into V1
-- Data accuracy risk if any hardcoded/test data survives into deployment
-
----
-
-## 12. Definition of Done (V1)
-
-- Full expense CRUD, dynamic categories (create/rename/delete), payment methods (tagging only)
-- Dashboard with total spend, recent + highest expenses, ≥2 charts, budget status
-- Daily/monthly/yearly analytics with category breakdown
-- Search + filters (incl. quick filters) + sort, all usable together, paginated
-- Budget goal (overall + per-category) with live balance, color status, and rule-based alerts
-- CSV and PDF export
-- Light/dark mode; responsive across devices
-- Full validation + empty/loading/error/no-results/success states
-- No hardcoded/demo data anywhere (frontend fetches categories and expenses dynamically from backend DB)
-- Deployed and tested end-to-end before Phase 2
-
----
-
-## 13. Stakeholders
-
-- Product Owner · Development Team · QA/Testing Team · End Users (primary feedback source per phase)
-
----
-
-## 14. Future Scope — Phase-wise Roadmap
-
-| Phase | Theme | Key Features |
-|---|---|---|
-| **Phase 1 (V1)** | Core Loop | CRUD, dynamic categories, dashboard + analytics, search/filter/sort, budget + alerts, CSV & PDF export |
-| **Phase 2** | Auth & Convenience | Login & multi-device sync, user-level data isolation, income tracking, recurring expenses, receipt upload, multiple wallets, Excel export |
-| **Phase 3** | Social/Sharing | Split expenses, shared budgets, multi-user/family accounts, role-based access |
-| **Phase 4** | Smart & Advanced | Savings goals, multi-currency, AI spend prediction, auto-categorization, bank/UPI/SMS auto-import, calendar heatmap, year-view trends |
-| **Phase 5** | Security & Personalization | Biometric lock, cloud backup, custom themes, push/email notifications |
-| **Phase 6** | Monetization | Free vs Premium plans, ads (free tier) |
-
-*Each phase follows Run → Test → Deploy before the next begins.*
-
----
-
-## 15. Dependencies
-
-- PostgreSQL for persistent storage
-- Recharts for dashboard/analytics visualizations
-- Auth mechanism (introduced Phase 2 onward)
-- Export libraries for CSV & PDF (V1); Excel export (Phase 2)
-- Notification system (Phase 5)
+| **Current (V2)** | **Complete Personal Platform** | Full expense & budget tracking, analytics, CSV/PDF reports, dark/light theme, PWA, and secure user authentication with Google Sign-In & data isolation. |
+| **Future (V3)** | **Smart Finance** | Multi-currency conversions, scheduled recurring expenses, receipt photo scanning (OCR), and budget push notifications. |

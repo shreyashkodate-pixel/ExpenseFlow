@@ -17,7 +17,7 @@ logger = logging.getLogger("app.main")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.APP_NAME} ({settings.APP_ENV})...")
-    if settings.SEED_ON_STARTUP:
+    if settings.SEED_ON_STARTUP and settings.APP_ENV not in ("test", "testing"):
         logger.info("Executing startup category seeding...")
         db = SessionLocal()
         try:

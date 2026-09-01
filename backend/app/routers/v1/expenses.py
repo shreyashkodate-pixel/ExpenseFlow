@@ -4,6 +4,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 from ...core.database import get_db
+from ...core.dependencies import get_current_user
+from ...models.user import User
 from ...schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseResponse
 from ...schemas.common import PaginatedResponse
 from ...services import expense_service, export_service
@@ -25,11 +27,13 @@ def get_expenses(
     order: str = Query("desc", description="Sort order: asc, desc"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Fetch paginated expenses with search, filtering, and sorting."""
+    """Fetch paginated expenses strictly scoped to the authenticated user."""
     items, total = expense_service.get_expenses(
         db=db,
+        user_id=current_user.id,
         search=search,
         category_id=category_id,
         payment_method=payment_method,
@@ -53,9 +57,13 @@ def get_expenses(
 
 
 @router.post("", response_model=ExpenseResponse, status_code=status.HTTP_201_CREATED)
-def create_expense(payload: ExpenseCreate, db: Session = Depends(get_db)):
-    """Create a new expense record."""
-    return expense_service.create_expense(db, payload)
+def create_expense(
+    payload: ExpenseCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new expense record owned by the authenticated user."""
+    return expense_service.create_expense(db, payload, current_user.id)
 
 
 @router.get("/export")
@@ -68,11 +76,13 @@ def export_expenses(
     amount_max: Optional[Decimal] = Query(None),
     date_from: Optional[date_type] = Query(None),
     date_to: Optional[date_type] = Query(None),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Export filtered expenses as a CSV or PDF file stream."""
+    """Export the authenticated user's filtered expenses as a CSV or PDF file stream."""
     items, _ = expense_service.get_expenses(
         db=db,
+        user_id=current_user.id,
         search=search,
         category_id=category_id,
         payment_method=payment_method,
@@ -83,7 +93,7 @@ def export_expenses(
         page=1,
         page_size=10000,
     )
-    
+
     fmt = format.lower().strip()
     if fmt == "csv":
         csv_content = export_service.generate_csv_export(items)
@@ -107,19 +117,32 @@ def export_expenses(
 
 
 @router.get("/{expense_id}", response_model=ExpenseResponse)
-def get_expense(expense_id: int, db: Session = Depends(get_db)):
-    """Get expense details by ID."""
-    return expense_service.get_expense_by_id(db, expense_id)
+def get_expense(
+    expense_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get expense details by ID verifying ownership."""
+    return expense_service.get_expense_by_id(db, expense_id, current_user.id)
 
 
 @router.put("/{expense_id}", response_model=ExpenseResponse)
-def update_expense(expense_id: int, payload: ExpenseUpdate, db: Session = Depends(get_db)):
-    """Update expense details."""
-    return expense_service.update_expense(db, expense_id, payload)
+def update_expense(
+    expense_id: int,
+    payload: ExpenseUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update expense details verifying ownership."""
+    return expense_service.update_expense(db, expense_id, payload, current_user.id)
 
 
 @router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_expense(expense_id: int, db: Session = Depends(get_db)):
-    """Delete expense record."""
-    expense_service.delete_expense(db, expense_id)
+def delete_expense(
+    expense_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete expense record verifying ownership."""
+    expense_service.delete_expense(db, expense_id, current_user.id)
     return None

@@ -19,7 +19,8 @@ from ..schemas.expense import ExpenseResponse
 from .budget_service import get_budget_status
 
 
-def get_dashboard_summary(db: Session) -> DashboardSummaryResponse:
+def get_dashboard_summary(db: Session, user_id: int) -> DashboardSummaryResponse:
+    """Calculate aggregated metrics and recent activity strictly for the authenticated user."""
     now = datetime.now(timezone.utc)
     current_month = now.month
     current_year = now.year
@@ -28,6 +29,7 @@ def get_dashboard_summary(db: Session) -> DashboardSummaryResponse:
     current_month_spending = (
         db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
         .filter(
+            Expense.user_id == user_id,
             extract("month", Expense.date) == current_month,
             extract("year", Expense.date) == current_year,
         )
@@ -35,34 +37,41 @@ def get_dashboard_summary(db: Session) -> DashboardSummaryResponse:
         or Decimal("0.00")
     )
 
-    # 2. Total expense count
-    total_expense_count = db.query(func.count(Expense.id)).scalar() or 0
+    # 2. Total expense count for user
+    total_expense_count = (
+        db.query(func.count(Expense.id))
+        .filter(Expense.user_id == user_id)
+        .scalar()
+        or 0
+    )
 
-    # 3. Highest single expense
+    # 3. Highest single expense for user
     highest_exp = (
         db.query(Expense)
         .options(joinedload(Expense.category))
+        .filter(Expense.user_id == user_id)
         .order_by(Expense.amount.desc())
         .first()
     )
     highest_exp_resp = ExpenseResponse.model_validate(highest_exp) if highest_exp else None
 
-    # 4. Recent 5 expenses
+    # 4. Recent 5 expenses for user
     recent_exps = (
         db.query(Expense)
         .options(joinedload(Expense.category))
+        .filter(Expense.user_id == user_id)
         .order_by(Expense.date.desc(), Expense.id.desc())
         .limit(5)
         .all()
     )
     recent_exps_resp = [ExpenseResponse.model_validate(e) for e in recent_exps]
 
-    # 5. Budget status for current month
-    b_status = get_budget_status(db, month=current_month, year=current_year)
+    # 5. Budget status for user's current month
+    b_status = get_budget_status(db, month=current_month, year=current_year, user_id=user_id)
     overall_b_status = b_status.overall_budget
 
     # 6. Top category spending for current month
-    top_cats = get_category_analytics(db, month=current_month, year=current_year)[:5]
+    top_cats = get_category_analytics(db, user_id=user_id, month=current_month, year=current_year)[:5]
 
     return DashboardSummaryResponse(
         current_month_spending=current_month_spending,
@@ -75,14 +84,19 @@ def get_dashboard_summary(db: Session) -> DashboardSummaryResponse:
 
 
 def get_category_analytics(
-    db: Session, month: Optional[int] = None, year: Optional[int] = None
+    db: Session, user_id: int, month: Optional[int] = None, year: Optional[int] = None
 ) -> List[CategorySpendingItem]:
-    query = db.query(
-        Category.id.label("category_id"),
-        Category.name.label("category_name"),
-        func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("amount"),
-        func.count(Expense.id).label("expense_count"),
-    ).join(Expense, Category.id == Expense.category_id)
+    """Calculate category spending breakdown strictly for user's expenses."""
+    query = (
+        db.query(
+            Category.id.label("category_id"),
+            Category.name.label("category_name"),
+            func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("amount"),
+            func.count(Expense.id).label("expense_count"),
+        )
+        .join(Expense, Category.id == Expense.category_id)
+        .filter(Expense.user_id == user_id)
+    )
 
     if month is not None:
         query = query.filter(extract("month", Expense.date) == month)
@@ -108,12 +122,12 @@ def get_category_analytics(
     return cat_items
 
 
-def get_daily_analytics(db: Session, target_date: date_type) -> DailyAnalyticsResponse:
-    # Expenses for date
+def get_daily_analytics(db: Session, target_date: date_type, user_id: int) -> DailyAnalyticsResponse:
+    """Calculate daily analytics for authenticated user."""
     expenses = (
         db.query(Expense)
         .options(joinedload(Expense.category))
-        .filter(Expense.date == target_date)
+        .filter(Expense.user_id == user_id, Expense.date == target_date)
         .all()
     )
 
@@ -152,11 +166,12 @@ def get_daily_analytics(db: Session, target_date: date_type) -> DailyAnalyticsRe
     )
 
 
-def get_monthly_analytics(db: Session, month: int, year: int) -> MonthlyAnalyticsResponse:
-    # 1. Total & count for month
+def get_monthly_analytics(db: Session, month: int, year: int, user_id: int) -> MonthlyAnalyticsResponse:
+    """Calculate monthly trend and daily curves for authenticated user."""
     total_amount = (
         db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
         .filter(
+            Expense.user_id == user_id,
             extract("month", Expense.date) == month,
             extract("year", Expense.date) == year,
         )
@@ -167,6 +182,7 @@ def get_monthly_analytics(db: Session, month: int, year: int) -> MonthlyAnalytic
     expense_count = (
         db.query(func.count(Expense.id))
         .filter(
+            Expense.user_id == user_id,
             extract("month", Expense.date) == month,
             extract("year", Expense.date) == year,
         )
@@ -174,7 +190,6 @@ def get_monthly_analytics(db: Session, month: int, year: int) -> MonthlyAnalytic
         or 0
     )
 
-    # 2. Daily breakdown for all calendar days of the month
     daily_results = (
         db.query(
             Expense.date,
@@ -182,6 +197,7 @@ def get_monthly_analytics(db: Session, month: int, year: int) -> MonthlyAnalytic
             func.count(Expense.id).label("expense_count"),
         )
         .filter(
+            Expense.user_id == user_id,
             extract("month", Expense.date) == month,
             extract("year", Expense.date) == year,
         )
@@ -212,8 +228,7 @@ def get_monthly_analytics(db: Session, month: int, year: int) -> MonthlyAnalytic
                 )
             )
 
-    # 3. Category breakdown
-    by_category = get_category_analytics(db, month=month, year=year)
+    by_category = get_category_analytics(db, user_id=user_id, month=month, year=year)
 
     return MonthlyAnalyticsResponse(
         month=month,
@@ -225,30 +240,29 @@ def get_monthly_analytics(db: Session, month: int, year: int) -> MonthlyAnalytic
     )
 
 
-def get_yearly_analytics(db: Session, year: int) -> YearlyAnalyticsResponse:
-    # 1. Total & count for year
+def get_yearly_analytics(db: Session, year: int, user_id: int) -> YearlyAnalyticsResponse:
+    """Calculate yearly overview for authenticated user."""
     total_amount = (
         db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
-        .filter(extract("year", Expense.date) == year)
+        .filter(Expense.user_id == user_id, extract("year", Expense.date) == year)
         .scalar()
         or Decimal("0.00")
     )
 
     expense_count = (
         db.query(func.count(Expense.id))
-        .filter(extract("year", Expense.date) == year)
+        .filter(Expense.user_id == user_id, extract("year", Expense.date) == year)
         .scalar()
         or 0
     )
 
-    # 2. Monthly breakdown
     monthly_results = (
         db.query(
             extract("month", Expense.date).label("month"),
             func.coalesce(func.sum(Expense.amount), Decimal("0.00")).label("amount"),
             func.count(Expense.id).label("expense_count"),
         )
-        .filter(extract("year", Expense.date) == year)
+        .filter(Expense.user_id == user_id, extract("year", Expense.date) == year)
         .group_by(extract("month", Expense.date))
         .order_by(extract("month", Expense.date).asc())
         .all()
@@ -268,8 +282,7 @@ def get_yearly_analytics(db: Session, year: int) -> YearlyAnalyticsResponse:
             )
         )
 
-    # 3. Category breakdown
-    by_category = get_category_analytics(db, month=None, year=year)
+    by_category = get_category_analytics(db, user_id=user_id, month=None, year=year)
 
     return YearlyAnalyticsResponse(
         year=year,

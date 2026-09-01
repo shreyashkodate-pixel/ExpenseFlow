@@ -1,0 +1,806 @@
+{
+	"info": {
+		"_postman_id": "expenseflow-api-collection-v1",
+		"name": "ExpenseFlow API",
+		"description": "Complete Postman API Collection for ExpenseFlow REST API (FastAPI backend).\n\nEnvironment Variables:\n- `base_url`: Target server API root (Default: `http://localhost:8000/api/v1` or Render `https://expenseflow-sle3.onrender.com/api/v1`)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "category_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "expense_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "budget_id",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Check Health & DB Connection",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Verifies API server status and PostgreSQL database connection."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "Get All Categories (with Counts)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"description": "Retrieve all categories along with count of associated expenses."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Subscriptions\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"description": "Create a new custom expense category."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/categories/{{category_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"categories",
+								"{{category_id}}"
+							]
+						},
+						"description": "Fetch single category by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Digital Services\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/categories/{{category_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"categories",
+								"{{category_id}}"
+							]
+						},
+						"description": "Update category name."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category (with optional reassign)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/categories/{{category_id}}?reassign_to=2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"categories",
+								"{{category_id}}"
+							],
+							"query": [
+								{
+									"key": "reassign_to",
+									"value": "2",
+									"description": "Target category ID to move existing expenses to (must be different from category being deleted)",
+									"disabled": false
+								}
+							]
+						},
+						"description": "Delete a category. If expenses reference it, specify `reassign_to` query parameter."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Expenses",
+			"item": [
+				{
+					"name": "List Expenses (Filtered & Paginated)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/expenses?page=1&page_size=20&search=&category_id=&payment_method=&date_from=2026-08-01&date_to=2026-08-31&sort=date&order=desc",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"expenses"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search text in description or notes",
+									"disabled": true
+								},
+								{
+									"key": "category_id",
+									"value": "",
+									"description": "Filter by category ID",
+									"disabled": true
+								},
+								{
+									"key": "payment_method",
+									"value": "GPay",
+									"description": "Cash, GPay, Credit Card, UPI, Bank Transfer, Others",
+									"disabled": true
+								},
+								{
+									"key": "amount_min",
+									"value": "10.00",
+									"disabled": true
+								},
+								{
+									"key": "amount_max",
+									"value": "500.00",
+									"disabled": true
+								},
+								{
+									"key": "date_from",
+									"value": "2026-08-01",
+									"disabled": true
+								},
+								{
+									"key": "date_to",
+									"value": "2026-08-31",
+									"disabled": true
+								},
+								{
+									"key": "sort",
+									"value": "date",
+									"description": "date, amount, description"
+								},
+								{
+									"key": "order",
+									"value": "desc",
+									"description": "asc, desc"
+								}
+							]
+						},
+						"description": "Get paginated expenses with full multi-field filter support."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Expense",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 450.00,\n  \"category_id\": 1,\n  \"description\": \"Team lunch at bistro\",\n  \"notes\": \"Paid via GPay, receipt attached\",\n  \"date\": \"2026-08-31\",\n  \"payment_method\": \"GPay\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/expenses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"expenses"
+							]
+						},
+						"description": "Log a new expense."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Expense by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/expenses/{{expense_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"expenses",
+								"{{expense_id}}"
+							]
+						},
+						"description": "Fetch expense item details by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Expense",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 480.00,\n  \"category_id\": 1,\n  \"description\": \"Team lunch with dessert\",\n  \"notes\": \"Included team beverages\",\n  \"date\": \"2026-08-31\",\n  \"payment_method\": \"UPI\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/expenses/{{expense_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"expenses",
+								"{{expense_id}}"
+							]
+						},
+						"description": "Update an existing expense."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Expense",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/expenses/{{expense_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"expenses",
+								"{{expense_id}}"
+							]
+						},
+						"description": "Delete an expense record."
+					},
+					"response": []
+				},
+				{
+					"name": "Export Expenses (CSV)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/expenses/export?format=csv",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"expenses",
+								"export"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "csv"
+								},
+								{
+									"key": "category_id",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "date_from",
+									"value": "2026-08-01",
+									"disabled": true
+								},
+								{
+									"key": "date_to",
+									"value": "2026-08-31",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Export filtered expenses as a CSV file attachment stream."
+					},
+					"response": []
+				},
+				{
+					"name": "Export Expenses (PDF)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/expenses/export?format=pdf",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"expenses",
+								"export"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "pdf"
+								},
+								{
+									"key": "category_id",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "date_from",
+									"value": "2026-08-01",
+									"disabled": true
+								},
+								{
+									"key": "date_to",
+									"value": "2026-08-31",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Export formatted ReportLab PDF document of expenses."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Budgets",
+			"item": [
+				{
+					"name": "List Budgets",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/budgets?month=8&year=2026",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"budgets"
+							],
+							"query": [
+								{
+									"key": "month",
+									"value": "8"
+								},
+								{
+									"key": "year",
+									"value": "2026"
+								},
+								{
+									"key": "category_id",
+									"value": "",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Fetch configured budgets for specified month and year."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Budget Status & Utilization",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/budgets/status?month=8&year=2026",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"budgets",
+								"status"
+							],
+							"query": [
+								{
+									"key": "month",
+									"value": "8"
+								},
+								{
+									"key": "year",
+									"value": "2026"
+								}
+							]
+						},
+						"description": "Calculates real-time budget spending, remaining balance, and status level ('ok', 'warning', 'exceeded')."
+					},
+					"response": []
+				},
+				{
+					"name": "Create or Upsert Budget Target",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"month\": 8,\n  \"year\": 2026,\n  \"amount\": 3000.00,\n  \"category_id\": null\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/budgets",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"budgets"
+							]
+						},
+						"description": "Set overall monthly budget (`category_id: null`) or category-specific budget."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Budget",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 3500.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/budgets/{{budget_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"budgets",
+								"{{budget_id}}"
+							]
+						},
+						"description": "Update existing budget amount or scope."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Budget",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/budgets/{{budget_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"budgets",
+								"{{budget_id}}"
+							]
+						},
+						"description": "Delete a budget limit."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Dashboard & Analytics",
+			"item": [
+				{
+					"name": "Dashboard Summary",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/dashboard/summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"dashboard",
+								"summary"
+							]
+						},
+						"description": "Fetch aggregated dashboard metrics (total spend, recent expenses, budget progress, top categories)."
+					},
+					"response": []
+				},
+				{
+					"name": "Daily Analytics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/daily?date=2026-08-31",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"analytics",
+								"daily"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-08-31",
+									"description": "Target date (YYYY-MM-DD)"
+								}
+							]
+						},
+						"description": "Spending breakdown for a single day."
+					},
+					"response": []
+				},
+				{
+					"name": "Monthly Analytics & Daily Breakdown",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/monthly?month=8&year=2026",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"analytics",
+								"monthly"
+							],
+							"query": [
+								{
+									"key": "month",
+									"value": "8"
+								},
+								{
+									"key": "year",
+									"value": "2026"
+								}
+							]
+						},
+						"description": "Monthly spending totals, daily trends curve, and category distribution."
+					},
+					"response": []
+				},
+				{
+					"name": "Yearly Analytics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/yearly?year=2026",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"analytics",
+								"yearly"
+							],
+							"query": [
+								{
+									"key": "year",
+									"value": "2026"
+								}
+							]
+						},
+						"description": "Annual spending trends aggregated across 12 calendar months."
+					},
+					"response": []
+				},
+				{
+					"name": "Category Spending Distribution",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/categories?month=8&year=2026",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"analytics",
+								"categories"
+							],
+							"query": [
+								{
+									"key": "month",
+									"value": "8"
+								},
+								{
+									"key": "year",
+									"value": "2026"
+								}
+							]
+						},
+						"description": "Category spending percentages and totals for charts."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

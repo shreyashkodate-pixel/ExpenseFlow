@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
 
@@ -8,8 +9,23 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+const AUTH_PATHS = ['/login', '/register', '/forgot-password', '/reset-password'];
+
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isAuthPage = AUTH_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+
+  if (isAuthPage) {
+    return (
+      <div className="flex min-h-screen w-full relative items-center justify-center p-4 sm:p-6 lg:p-8">
+        <main className="w-full max-w-md relative z-10">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full relative">

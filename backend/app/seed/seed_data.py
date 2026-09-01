@@ -24,9 +24,9 @@ def seed_initial_categories(db: Session) -> None:
     logger.info("Starting initial category seeding...")
     added_count = 0
     for cat_name in STARTER_CATEGORIES:
-        existing = db.query(Category).filter(Category.name == cat_name).first()
+        existing = db.query(Category).filter(Category.name == cat_name, Category.user_id.is_(None)).first()
         if not existing:
-            new_cat = Category(name=cat_name)
+            new_cat = Category(name=cat_name, user_id=None)
             db.add(new_cat)
             added_count += 1
 

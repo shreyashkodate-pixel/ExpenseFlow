@@ -3,9 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Receipt, PieChart, Wallet, Settings, Sparkles, X } from 'lucide-react';
+import { LayoutDashboard, Receipt, PieChart, Wallet, Settings, Sparkles, X, LogOut, User as UserIcon } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { PWAInstallButton } from './PWAInstall';
+import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -22,6 +23,12 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    if (onClose) onClose();
+    await logout();
+  };
 
   const navContent = (
     <div className="flex flex-col h-full bg-white/95 dark:bg-slate-950/95 lg:bg-white/80 dark:lg:bg-slate-950/80 backdrop-blur-2xl transition-colors duration-300">
@@ -83,24 +90,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
         })}
       </nav>
 
-      {/* App Footer: PWA Button, Theme Switcher & Connection Badge */}
+      {/* App Footer: User Profile, PWA, Theme & Logout */}
       <div className="p-4 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2.5">
+        {/* User Card */}
+        {user && (
+          <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between">
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {user.full_name ? user.full_name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                  {user.full_name || 'My Account'}
+                </div>
+                <div className="text-[10px] text-slate-500 truncate font-mono">
+                  {user.email}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Sign Out"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* PWA Install Button */}
         <PWAInstallButton />
 
-        {/* Prominent Theme Toggle Row */}
+        {/* Theme Toggle Row */}
         <ThemeToggle showLabel={true} />
-
-        {/* PostgreSQL Status Indicator */}
-        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-xs shadow-inner">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse shadow-glow" />
-            <span className="text-slate-700 dark:text-slate-300 font-medium">PostgreSQL Engine</span>
-          </div>
-          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/20">
-            ONLINE
-          </span>
-        </div>
       </div>
     </div>
   );
