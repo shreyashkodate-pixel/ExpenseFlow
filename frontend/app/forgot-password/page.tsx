@@ -10,7 +10,6 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [resetToken, setResetToken] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,11 +23,8 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const res = await forgotPassword(email);
+      await forgotPassword(email);
       setIsSuccess(true);
-      if (res.reset_token) {
-        setResetToken(res.reset_token);
-      }
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorMsg(err.message);
@@ -69,35 +65,23 @@ export default function ForgotPasswordPage() {
 
         {isSuccess ? (
           <div className="text-center py-4 space-y-4">
-            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
-              <CheckCircle2 className="w-6 h-6" />
+            <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
+              <CheckCircle2 className="w-7 h-7" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              Check Your Inbox
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+              Check Your Email
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              If an account with <span className="font-semibold text-slate-800 dark:text-slate-200">{email}</span> exists, we&apos;ve generated a secure password reset link.
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              If an account with <span className="font-semibold text-slate-900 dark:text-slate-100">{email}</span> exists in ExpenseFlow, we have sent a secure password reset link to your email inbox.
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Please check your inbox (and spam/junk folder) and click the link to reset your password. The link is valid for 60 minutes.
             </p>
 
-            {resetToken && (
-              <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-left text-xs space-y-1">
-                <div className="font-bold text-indigo-600 dark:text-indigo-400">Development Mode Token:</div>
-                <div className="font-mono text-[11px] break-all text-slate-700 dark:text-slate-300">{resetToken}</div>
-                <div className="pt-2">
-                  <Link
-                    href={`/reset-password?token=${resetToken}`}
-                    className="inline-block px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold text-[11px] hover:bg-indigo-500"
-                  >
-                    Proceed to Reset Password →
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            <div className="pt-4">
+            <div className="pt-6">
               <Link
                 href="/login"
-                className="inline-flex items-center space-x-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="w-full inline-flex items-center justify-center space-x-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-md transition-all"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Return to Sign In</span>

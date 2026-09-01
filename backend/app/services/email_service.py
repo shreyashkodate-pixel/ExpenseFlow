@@ -92,11 +92,13 @@ The ExpenseFlow Team
 
     try:
         if settings.SMTP_PORT == 465:
-            server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10)
+            server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
         else:
-            server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10)
+            server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
             if settings.SMTP_TLS:
+                server.ehlo()
                 server.starttls()
+                server.ehlo()
 
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
         server.sendmail(from_email, [to_email], msg.as_string())

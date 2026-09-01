@@ -232,8 +232,7 @@ def forgot_password(
 
     return {
         "status": "success",
-        "message": "If that email is registered in ExpenseFlow, a password reset link has been sent.",
-        "reset_token": raw_token if settings.APP_ENV != "production" else None,
+        "message": "If that email is registered in ExpenseFlow, a password reset link has been sent to your email inbox.",
     }
 
 
