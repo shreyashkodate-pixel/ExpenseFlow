@@ -127,8 +127,11 @@ def authenticate_google(
             error_code="INVALID_GOOGLE_TOKEN"
         )
 
-    if settings.GOOGLE_CLIENT_ID and payload.get("aud") != settings.GOOGLE_CLIENT_ID:
-        logger.warning(f"Google token audience mismatch: expected {settings.GOOGLE_CLIENT_ID}, got {payload.get('aud')}")
+    expected_client_id = settings.GOOGLE_CLIENT_ID.strip().strip('"').strip("'") if settings.GOOGLE_CLIENT_ID else None
+    token_aud = payload.get("aud", "").strip() if payload.get("aud") else None
+
+    if expected_client_id and token_aud and token_aud != expected_client_id:
+        logger.warning(f"Google token audience mismatch: expected '{expected_client_id}', got '{token_aud}'")
         raise BadRequestException(
             detail="Google token audience mismatch",
             error_code="INVALID_GOOGLE_TOKEN"

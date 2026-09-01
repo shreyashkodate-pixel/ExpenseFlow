@@ -51,7 +51,14 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
+
+  // Check if GIS script was already injected/cached
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.google?.accounts?.id) {
+      setScriptLoaded(true);
+    }
+  }, []);
 
   const handleCredentialResponse = React.useCallback(async (response: { credential: string }) => {
     if (!response.credential) {
@@ -83,7 +90,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         callback: handleCredentialResponse,
       });
 
-      // Clear any previous rendered button
+      // Clear any previously rendered button
       buttonRef.current.innerHTML = '';
 
       window.google.accounts.id.renderButton(buttonRef.current, {
