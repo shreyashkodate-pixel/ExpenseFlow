@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from sqlalchemy.orm import Session
@@ -20,6 +21,7 @@ from ...schemas.auth import (
 )
 from ...services import auth_service, email_service
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication & Session"])
 
 
@@ -219,11 +221,14 @@ def forgot_password(
     """Generate a password reset token and dispatch reset email."""
     raw_token = auth_service.request_password_reset(db, schema.email)
     if raw_token:
+        logger.info(f"Dispatching password reset email task for: {schema.email}")
         background_tasks.add_task(
             email_service.send_password_reset_email,
             to_email=schema.email,
             reset_token=raw_token
         )
+    else:
+        logger.warning(f"Password reset requested for non-existent email: {schema.email}")
 
     return {
         "status": "success",
