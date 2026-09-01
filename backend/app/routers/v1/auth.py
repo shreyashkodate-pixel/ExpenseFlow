@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from sqlalchemy.orm import Session
 from ...core.config import settings
 from ...core.database import get_db
@@ -18,7 +18,7 @@ from ...schemas.auth import (
     PasswordResetRequest,
     PasswordResetConfirm,
 )
-from ...services import auth_service
+from ...services import auth_service, email_service
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Session"])
 
@@ -212,15 +212,22 @@ def change_password(
 @router.post("/forgot-password")
 def forgot_password(
     schema: PasswordResetRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     _limit=Depends(rate_limit("auth:forgot_pwd", max_requests=5, window_seconds=60)),
 ):
-    """Generate a password reset token for account recovery."""
+    """Generate a password reset token and dispatch reset email."""
     raw_token = auth_service.request_password_reset(db, schema.email)
-    # In production, this would send an email with the link `${settings.FRONTEND_URL}/reset-password?token=${raw_token}`
+    if raw_token:
+        background_tasks.add_task(
+            email_service.send_password_reset_email,
+            to_email=schema.email,
+            reset_token=raw_token
+        )
+
     return {
         "status": "success",
-        "message": "If that email is registered in ExpenseFlow, a password reset link has been created.",
+        "message": "If that email is registered in ExpenseFlow, a password reset link has been sent.",
         "reset_token": raw_token if settings.APP_ENV != "production" else None,
     }
 

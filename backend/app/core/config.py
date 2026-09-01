@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     # Frontend URL for password reset links & redirects
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # SMTP Email Settings
+    SMTP_HOST: Union[str, None] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Union[str, None] = None
+    SMTP_PASSWORD: Union[str, None] = None
+    SMTP_FROM_EMAIL: Union[str, None] = None
+    SMTP_FROM_NAME: str = "ExpenseFlow"
+    SMTP_TLS: bool = True
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
