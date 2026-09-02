@@ -16,11 +16,13 @@ from ..core.security import (
 from ..core.exceptions import (
     BadRequestException,
     UnauthorizedException,
+    ForbiddenException,
     ResourceNotFoundException,
 )
 from ..models.user import User
 from ..models.refresh_token import RefreshToken
 from ..models.password_reset_token import PasswordResetToken
+from ..models.email_verification_token import EmailVerificationToken
 from ..schemas.auth import (
     UserRegister,
     UserLogin,
@@ -41,8 +43,11 @@ def register_user(
     db: Session,
     schema: UserRegister,
     request: Optional[Request] = None
-) -> Tuple[User, str, str]:
-    """Register a new user, create initial session, and return (user, access_token, raw_refresh_token)."""
+) -> Tuple[User, str]:
+    """
+    Register a new unverified user, generate single-use email verification token,
+    and return (user, raw_verification_token).
+    """
     cleaned_email = schema.email.strip().lower()
     existing_user = db.query(User).filter(func.lower(User.email) == cleaned_email).first()
     if existing_user:
@@ -62,8 +67,99 @@ def register_user(
     db.commit()
     db.refresh(user)
 
+    # Generate single-use verification token (valid for 24 hours)
+    raw_verification_token, token_hash = generate_random_token(64)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    verification_record = EmailVerificationToken(
+        user_id=user.id,
+        token_hash=token_hash,
+        used=False,
+        expires_at=expires_at,
+    )
+    db.add(verification_record)
+    db.commit()
+
+    return user, raw_verification_token
+
+
+def verify_email_token(
+    db: Session,
+    raw_token: str,
+    request: Optional[Request] = None
+) -> Tuple[User, str, str]:
+    """
+    Validate email verification token, mark user as verified, create active session,
+    and return (user, access_token, raw_refresh_token).
+    """
+    token_hash = hash_token(raw_token)
+    record = db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.token_hash == token_hash
+    ).first()
+
+    if not record or record.used or _is_expired(record.expires_at):
+        raise BadRequestException(
+            detail="Invalid or expired verification link. Please request a new verification email.",
+            error_code="INVALID_VERIFICATION_TOKEN"
+        )
+
+    user = record.user
+    if not user or not user.is_active:
+        raise UnauthorizedException(
+            detail="User account is inactive or deleted",
+            error_code="USER_INACTIVE"
+        )
+
+    # Mark token as used and verify user
+    record.used = True
+    user.is_verified = True
+    db.commit()
+    db.refresh(user)
+
     access_token, raw_refresh_token = create_user_session(db, user, request)
     return user, access_token, raw_refresh_token
+
+
+def request_resend_verification(db: Session, email: str) -> Tuple[User, str]:
+    """
+    Generate a new verification token for an unverified user.
+    Returns (user, raw_verification_token).
+    """
+    cleaned_email = email.strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == cleaned_email).first()
+
+    if not user:
+        raise ResourceNotFoundException(
+            detail="No account found with this email address.",
+            error_code="USER_NOT_FOUND"
+        )
+
+    if user.is_verified:
+        raise BadRequestException(
+            detail="Your email is already verified. You can log in directly.",
+            error_code="ALREADY_VERIFIED"
+        )
+
+    # Invalidate previous unused tokens for this user
+    db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.user_id == user.id,
+        EmailVerificationToken.used == False
+    ).update({"used": True})
+
+    # Generate new token
+    raw_verification_token, token_hash = generate_random_token(64)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    record = EmailVerificationToken(
+        user_id=user.id,
+        token_hash=token_hash,
+        used=False,
+        expires_at=expires_at,
+    )
+    db.add(record)
+    db.commit()
+
+    return user, raw_verification_token
 
 
 def authenticate_user(
@@ -71,7 +167,7 @@ def authenticate_user(
     schema: UserLogin,
     request: Optional[Request] = None
 ) -> Tuple[User, str, str]:
-    """Authenticate an existing user with email and password."""
+    """Authenticate an existing user with email and password, enforcing email verification."""
     cleaned_email = schema.email.strip().lower()
     user = db.query(User).filter(func.lower(User.email) == cleaned_email).first()
     if not user or not verify_password(schema.password, user.hashed_password):
@@ -84,6 +180,12 @@ def authenticate_user(
         raise UnauthorizedException(
             detail="User account is deactivated",
             error_code="USER_INACTIVE"
+        )
+
+    if not user.is_verified:
+        raise ForbiddenException(
+            detail="Please verify your email address before logging in. Check your inbox for the verification link.",
+            error_code="EMAIL_NOT_VERIFIED"
         )
 
     access_token, raw_refresh_token = create_user_session(db, user, request)

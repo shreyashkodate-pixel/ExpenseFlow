@@ -3,11 +3,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, AlertCircle, CheckCircle2, RotateCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
 import { ApiError } from '../../lib/api/client';
 import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
+import { resendVerification } from '../../lib/api/auth';
 
 function LoginFormContent() {
   const { login } = useAuth();
@@ -20,6 +21,8 @@ function LoginFormContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [showResendBtn, setShowResendBtn] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     if (searchParams.get('registered') === 'true') {
@@ -35,6 +38,7 @@ function LoginFormContent() {
     }
 
     setErrorMsg(null);
+    setShowResendBtn(false);
     setIsLoading(true);
 
     try {
@@ -43,11 +47,32 @@ function LoginFormContent() {
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorMsg(err.message);
+        if (err.code === 'EMAIL_NOT_VERIFIED') {
+          setShowResendBtn(true);
+        }
       } else {
         setErrorMsg('Failed to sign in. Please check your credentials and try again.');
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) return;
+    setIsResending(true);
+    try {
+      await resendVerification(email);
+      showToast('Verification email resent! Please check your inbox.', 'success');
+      setShowResendBtn(false);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        showToast(err.message, 'error');
+      } else {
+        showToast('Failed to resend verification link.', 'error');
+      }
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -83,9 +108,24 @@ function LoginFormContent() {
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start space-x-3 text-rose-600 dark:text-rose-400 text-sm animate-shake">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <div className="flex-1 font-medium">{errorMsg}</div>
+          <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-sm animate-shake space-y-2.5">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium">{errorMsg}</div>
+            </div>
+            {showResendBtn && (
+              <div className="pl-8 pt-1">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={isResending}
+                  className="inline-flex items-center space-x-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-xl transition-all disabled:opacity-50"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${isResending ? 'animate-spin' : ''}`} />
+                  <span>{isResending ? 'Resending Link...' : 'Resend Verification Email'}</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 

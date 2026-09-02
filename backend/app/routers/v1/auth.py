@@ -18,6 +18,9 @@ from ...schemas.auth import (
     ChangePasswordRequest,
     PasswordResetRequest,
     PasswordResetConfirm,
+    VerifyEmailRequest,
+    ResendVerificationRequest,
+    RegistrationResponse,
 )
 from ...services import auth_service, email_service
 
@@ -66,20 +69,44 @@ def _clear_refresh_cookie(response: Response) -> None:
     )
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
 def register(
     schema: UserRegister,
-    request: Request,
-    response: Response,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     _limit=Depends(rate_limit("auth:register", max_requests=10, window_seconds=60)),
 ):
-    """Register a new user, issue in-memory access token and HttpOnly refresh token cookie."""
-    user, access_token, raw_refresh_token = auth_service.register_user(db, schema, request)
+    """Register a new unverified user and dispatch account verification email link."""
+    user, raw_verification_token = auth_service.register_user(db, schema)
+
+    logger.info(f"Dispatching verification email task for: {user.email}")
+    background_tasks.add_task(
+        email_service.send_verification_email,
+        to_email=user.email,
+        verification_token=raw_verification_token,
+        full_name=user.full_name,
+    )
+
+    return RegistrationResponse(
+        status="verification_pending",
+        message="Registration initiated! Please check your email inbox to verify and activate your account.",
+        email=user.email,
+    )
+
+
+@router.post("/verify-email", response_model=TokenResponse)
+def verify_email(
+    schema: VerifyEmailRequest,
+    request: Request,
+    response: Response,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Verify email address with single-use token, activate user, dispatch welcome email, and issue login session."""
+    user, access_token, raw_refresh_token = auth_service.verify_email_token(db, schema.token, request)
     _set_refresh_cookie(response, raw_refresh_token)
 
-    logger.info(f"Dispatching welcome email task for new user: {user.email}")
+    logger.info(f"Dispatching welcome email task for newly verified user: {user.email}")
     background_tasks.add_task(
         email_service.send_welcome_email,
         to_email=user.email,
@@ -91,6 +118,30 @@ def register(
         token_type="bearer",
         user=UserResponse.model_validate(user),
     )
+
+
+@router.post("/resend-verification")
+def resend_verification(
+    schema: ResendVerificationRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    _limit=Depends(rate_limit("auth:resend_verif", max_requests=5, window_seconds=60)),
+):
+    """Generate and dispatch a new verification link for an unverified account."""
+    user, raw_token = auth_service.request_resend_verification(db, schema.email)
+
+    logger.info(f"Dispatching resend verification email task for: {user.email}")
+    background_tasks.add_task(
+        email_service.send_verification_email,
+        to_email=user.email,
+        verification_token=raw_token,
+        full_name=user.full_name,
+    )
+
+    return {
+        "status": "success",
+        "message": "A new verification email has been sent to your inbox.",
+    }
 
 
 @router.post("/login", response_model=TokenResponse)

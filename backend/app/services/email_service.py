@@ -224,3 +224,113 @@ The ExpenseFlow Team
     except Exception as e:
         logger.error(f"Failed to send welcome email to {to_email} via SMTP: {e}")
         return False
+
+
+def send_verification_email(to_email: str, verification_token: str, full_name: Optional[str] = None) -> bool:
+    """
+    Send a branded email verification link to newly registered users via SMTP.
+    If SMTP is not configured, logs the verification link for local testing and returns True.
+    """
+    verify_url = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
+    user_display = full_name.strip() if full_name and full_name.strip() else "there"
+
+    if not settings.SMTP_HOST or not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        logger.info(
+            f"[DEV MODE] SMTP not configured. Verification link for {to_email} (Name: {user_display}):\n{verify_url}"
+        )
+        return True
+
+    from_email = settings.SMTP_FROM_EMAIL or settings.SMTP_USER
+    from_header = f"{settings.SMTP_FROM_NAME} <{from_email}>"
+
+    # Create message container
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "Verify Your ExpenseFlow Account ✉️"
+    msg["From"] = from_header
+    msg["To"] = to_email
+
+    # Plain text version
+    text_content = f"""Hello {user_display},
+
+Thank you for registering on ExpenseFlow!
+
+Please click the link below to verify your email address and activate your account (valid for 24 hours):
+{verify_url}
+
+If you did not register for an ExpenseFlow account, please ignore this email.
+
+Best regards,
+The ExpenseFlow Team
+"""
+
+    # Rich HTML version
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 20px; }}
+    .container {{ max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 20px; padding: 40px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }}
+    .logo {{ text-align: center; margin-bottom: 24px; }}
+    .title {{ font-size: 24px; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 8px; }}
+    .subtitle {{ font-size: 15px; color: #64748b; text-align: center; margin-bottom: 28px; }}
+    .text {{ font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 20px; }}
+    .btn-container {{ text-align: center; margin: 32px 0; }}
+    .btn {{ display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff !important; font-weight: 700; font-size: 15px; padding: 14px 36px; text-decoration: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }}
+    .footer {{ border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center; }}
+    .fallback-url {{ word-break: break-all; color: #6366f1; font-size: 12px; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h2 style="margin: 0; color: #4f46e5; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">ExpenseFlow</h2>
+    </div>
+    <div class="title">Verify Your Email Address ✉️</div>
+    <div class="subtitle">Complete your registration to get started</div>
+    <p class="text">
+      Hi <strong>{user_display}</strong>,
+    </p>
+    <p class="text">
+      Thank you for creating an account on ExpenseFlow. To activate your account and start tracking your finances, please click the button below to verify your email address.
+    </p>
+    <div class="btn-container">
+      <a href="{verify_url}" class="btn" target="_blank">Verify My Email</a>
+    </div>
+    <p class="text" style="font-size: 13px; color: #64748b; text-align: center; margin-bottom: 8px;">
+      This verification link is valid for <strong>24 hours</strong>. If you didn't create an account, you can safely ignore this email.
+    </p>
+    <div class="footer">
+      <p style="margin: 0 0 8px 0;">If the button doesn't work, copy and paste this URL into your browser:</p>
+      <a href="{verify_url}" class="fallback-url">{verify_url}</a>
+      <p style="margin: 16px 0 0 0;">&copy; ExpenseFlow &bull; Private & Secure Financial Tracking</p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+    part1 = MIMEText(text_content, "plain")
+    part2 = MIMEText(html_content, "html")
+    msg.attach(part1)
+    msg.attach(part2)
+
+    try:
+        if settings.SMTP_PORT == 465:
+            server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
+        else:
+            server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
+            if settings.SMTP_TLS:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.sendmail(from_email, [to_email], msg.as_string())
+        server.quit()
+        logger.info(f"Successfully sent email verification email to {to_email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email verification email to {to_email} via SMTP: {e}")
+        return False
+

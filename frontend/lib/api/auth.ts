@@ -9,11 +9,24 @@ import {
   ChangePasswordData,
   PasswordResetConfirmData,
   GenericStatusResponse,
+  RegistrationResponse,
 } from '../../types/auth';
 
-export async function register(data: RegisterData): Promise<TokenResponse> {
-  const res = await apiPost<TokenResponse>('/auth/register', data);
+export async function register(data: RegisterData): Promise<RegistrationResponse> {
+  const res = await apiPost<RegistrationResponse>('/auth/register', data);
   return res;
+}
+
+export async function verifyEmail(token: string): Promise<TokenResponse> {
+  const res = await apiPost<TokenResponse>('/auth/verify-email', { token });
+  if (res.access_token) {
+    setAccessToken(res.access_token);
+  }
+  return res;
+}
+
+export async function resendVerification(email: string): Promise<GenericStatusResponse> {
+  return apiPost<GenericStatusResponse>('/auth/resend-verification', { email });
 }
 
 export async function login(credentials: LoginCredentials): Promise<TokenResponse> {

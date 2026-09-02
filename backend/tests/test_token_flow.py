@@ -3,13 +3,26 @@ from app.core.security import create_access_token
 from datetime import timedelta
 
 
-def test_refresh_token_rotation(client):
-    # 1. Register user
+
+
+def test_refresh_token_rotation(client, db_session):
+    from app.models.user import User
+    # 1. Register & verify user
     reg_resp = client.post("/api/v1/auth/register", json={
         "email": "tokenuser@example.com",
         "password": "TokenPassword123!"
     })
     assert reg_resp.status_code == 201
+
+    user = db_session.query(User).filter(User.email == "tokenuser@example.com").first()
+    user.is_verified = True
+    db_session.commit()
+
+    login_resp = client.post("/api/v1/auth/login", json={
+        "email": "tokenuser@example.com",
+        "password": "TokenPassword123!"
+    })
+    assert login_resp.status_code == 200
     old_cookie = client.cookies.get("refresh_token")
     assert old_cookie is not None
 
@@ -23,13 +36,24 @@ def test_refresh_token_rotation(client):
     assert new_cookie != old_cookie
 
 
-def test_token_reuse_detection(client):
-    # 1. Register user
+def test_token_reuse_detection(client, db_session):
+    from app.models.user import User
+    # 1. Register & verify user
     reg_resp = client.post("/api/v1/auth/register", json={
         "email": "reuseuser@example.com",
         "password": "ReusePassword123!"
     })
     assert reg_resp.status_code == 201
+
+    user = db_session.query(User).filter(User.email == "reuseuser@example.com").first()
+    user.is_verified = True
+    db_session.commit()
+
+    login_resp = client.post("/api/v1/auth/login", json={
+        "email": "reuseuser@example.com",
+        "password": "ReusePassword123!"
+    })
+    assert login_resp.status_code == 200
     stolen_token = client.cookies.get("refresh_token")
 
     # 2. Legitimate user rotates token
@@ -47,12 +71,22 @@ def test_token_reuse_detection(client):
     assert legit_next_refresh.status_code == 401
 
 
-def test_logout_revokes_token(client):
+def test_logout_revokes_token(client, db_session):
+    from app.models.user import User
     # 1. Register & Login
     client.post("/api/v1/auth/register", json={
         "email": "logoutuser@example.com",
         "password": "LogoutPassword123!"
     })
+    user = db_session.query(User).filter(User.email == "logoutuser@example.com").first()
+    user.is_verified = True
+    db_session.commit()
+
+    login_resp = client.post("/api/v1/auth/login", json={
+        "email": "logoutuser@example.com",
+        "password": "LogoutPassword123!"
+    })
+    assert login_resp.status_code == 200
     assert "refresh_token" in client.cookies
 
     # 2. Logout

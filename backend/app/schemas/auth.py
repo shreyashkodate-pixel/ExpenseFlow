@@ -56,3 +56,18 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str = Field(..., min_length=10)
     new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(..., min_length=10)
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class RegistrationResponse(BaseModel):
+    status: str = "verification_pending"
+    message: str
+    email: EmailStr
+

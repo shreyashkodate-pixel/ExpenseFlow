@@ -48,3 +48,10 @@ export interface GenericStatusResponse {
   message?: string;
   reset_token?: string | null;
 }
+
+export interface RegistrationResponse {
+  status: string;
+  message: string;
+  email: string;
+}
+

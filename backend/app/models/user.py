@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .category import Category
     from .refresh_token import RefreshToken
     from .password_reset_token import PasswordResetToken
+    from .email_verification_token import EmailVerificationToken
 
 
 class User(Base):
@@ -41,3 +42,4 @@ class User(Base):
     categories: Mapped[List["Category"]] = relationship("Category", back_populates="user")
     refresh_tokens: Mapped[List["RefreshToken"]] = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     password_reset_tokens: Mapped[List["PasswordResetToken"]] = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
+    email_verification_tokens: Mapped[List["EmailVerificationToken"]] = relationship("EmailVerificationToken", back_populates="user", cascade="all, delete-orphan")

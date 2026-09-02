@@ -50,15 +50,29 @@ def client(db_session):
 
 
 @pytest.fixture
-def auth_user_a(client):
-    """Register and log in User A, returning dict with user, access_token, and auth headers."""
+def auth_user_a(client, db_session):
+    """Register and verify User A, returning dict with user, access_token, and auth headers."""
+    from app.models.user import User
+    from app.models.email_verification_token import EmailVerificationToken
+    
     resp = client.post("/api/v1/auth/register", json={
         "email": "user_a@example.com",
         "password": "Password123!",
         "full_name": "Alice User"
     })
     assert resp.status_code == 201, resp.text
-    data = resp.json()
+
+    # Manually mark as verified for fixture login
+    user = db_session.query(User).filter(User.email == "user_a@example.com").first()
+    user.is_verified = True
+    db_session.commit()
+
+    login_resp = client.post("/api/v1/auth/login", json={
+        "email": "user_a@example.com",
+        "password": "Password123!"
+    })
+    assert login_resp.status_code == 200, login_resp.text
+    data = login_resp.json()
     token = data["access_token"]
     return {
         "user": data["user"],
@@ -68,15 +82,28 @@ def auth_user_a(client):
 
 
 @pytest.fixture
-def auth_user_b(client):
-    """Register and log in User B, returning dict with user, access_token, and auth headers."""
+def auth_user_b(client, db_session):
+    """Register and verify User B, returning dict with user, access_token, and auth headers."""
+    from app.models.user import User
+
     resp = client.post("/api/v1/auth/register", json={
         "email": "user_b@example.com",
         "password": "Password456!",
         "full_name": "Bob User"
     })
     assert resp.status_code == 201, resp.text
-    data = resp.json()
+
+    # Manually mark as verified for fixture login
+    user = db_session.query(User).filter(User.email == "user_b@example.com").first()
+    user.is_verified = True
+    db_session.commit()
+
+    login_resp = client.post("/api/v1/auth/login", json={
+        "email": "user_b@example.com",
+        "password": "Password456!"
+    })
+    assert login_resp.status_code == 200, login_resp.text
+    data = login_resp.json()
     token = data["access_token"]
     return {
         "user": data["user"],

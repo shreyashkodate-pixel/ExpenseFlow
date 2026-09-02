@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { User, LoginCredentials, RegisterData, GoogleAuthData } from '../types/auth';
+import { User, LoginCredentials, RegisterData, GoogleAuthData, RegistrationResponse } from '../types/auth';
 import * as authApi from '../lib/api/auth';
 import { setAccessToken } from '../lib/api/client';
 
@@ -11,7 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData) => Promise<RegistrationResponse>;
   googleLogin: (data: GoogleAuthData) => Promise<void>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;
@@ -20,7 +20,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password'];
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -74,11 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     router.push('/');
   };
 
-  const register = async (data: RegisterData) => {
-    await authApi.register(data);
+  const register = async (data: RegisterData): Promise<RegistrationResponse> => {
+    const res = await authApi.register(data);
     setAccessToken(null);
     setUser(null);
-    router.push('/login?registered=true');
+    return res;
   };
 
   const googleLogin = async (data: GoogleAuthData) => {
