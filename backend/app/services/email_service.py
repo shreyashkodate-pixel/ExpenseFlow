@@ -1,5 +1,6 @@
 import smtplib
 import logging
+from typing import Optional
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from ..core.config import settings
