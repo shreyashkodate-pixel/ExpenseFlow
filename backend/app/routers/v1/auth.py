@@ -71,12 +71,21 @@ def register(
     schema: UserRegister,
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     _limit=Depends(rate_limit("auth:register", max_requests=10, window_seconds=60)),
 ):
     """Register a new user, issue in-memory access token and HttpOnly refresh token cookie."""
     user, access_token, raw_refresh_token = auth_service.register_user(db, schema, request)
     _set_refresh_cookie(response, raw_refresh_token)
+
+    logger.info(f"Dispatching welcome email task for new user: {user.email}")
+    background_tasks.add_task(
+        email_service.send_welcome_email,
+        to_email=user.email,
+        full_name=user.full_name,
+    )
+
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
@@ -107,11 +116,21 @@ def google_sign_in(
     schema: GoogleAuthRequest,
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """Authenticate or register user using Google OAuth 2.0 / OpenID Connect ID token."""
-    user, access_token, raw_refresh_token = auth_service.authenticate_google(db, schema.credential, request)
+    user, access_token, raw_refresh_token, is_new_user = auth_service.authenticate_google(db, schema.credential, request)
     _set_refresh_cookie(response, raw_refresh_token)
+
+    if is_new_user:
+        logger.info(f"Dispatching welcome email task for new Google user: {user.email}")
+        background_tasks.add_task(
+            email_service.send_welcome_email,
+            to_email=user.email,
+            full_name=user.full_name,
+        )
+
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",

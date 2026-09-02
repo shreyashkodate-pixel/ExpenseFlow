@@ -118,3 +118,11 @@ def test_forgot_password_unregistered_email(client):
     })
     assert resp.status_code == 404
     assert resp.json()["error_code"] == "USER_NOT_FOUND"
+
+
+def test_welcome_email_service():
+    from app.services.email_service import send_welcome_email
+    # Dev mode / unconfigured SMTP should succeed safely
+    assert send_welcome_email("testwelcome@example.com", "Test User") is True
+    assert send_welcome_email("testwelcome_noname@example.com", None) is True
+

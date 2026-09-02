@@ -152,6 +152,7 @@ def authenticate_google(
         (User.google_id == google_id) | (func.lower(User.email) == cleaned_email)
     ).first()
 
+    is_new_user = False
     if user:
         # Link account if not already linked
         if not user.google_id:
@@ -165,6 +166,7 @@ def authenticate_google(
         db.refresh(user)
     else:
         # Create new user via Google
+        is_new_user = True
         user = User(
             email=cleaned_email,
             google_id=google_id,
@@ -184,7 +186,7 @@ def authenticate_google(
         )
 
     access_token, raw_refresh_token = create_user_session(db, user, request)
-    return user, access_token, raw_refresh_token
+    return user, access_token, raw_refresh_token, is_new_user
 
 
 def create_user_session(

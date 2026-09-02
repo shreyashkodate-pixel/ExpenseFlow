@@ -59,9 +59,9 @@ Bootstrapped clean directory structure without clutter:
   - [`budgets.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/budgets.py): User-scoped target budget creation/upsert and real-time status calculation.
   - [`dashboard.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/dashboard.py): User-scoped aggregated metrics with route aliases.
   - [`analytics.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/analytics.py): User-scoped daily, monthly, and yearly spending trends.
-  - [`email_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/email_service.py): SMTP transactional email delivery for password resets.
+  - [`email_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/email_service.py): SMTP transactional email delivery for both branded password reset links and new user registration welcome emails.
 - **Verification & Tests**:
-  - Automated Test Suite: All **27/27 unit tests passing (100%)** in `backend/tests/`.
+  - Automated Test Suite: All **28/28 unit tests passing (100%)** in `backend/tests/`.
 
 ---
 
