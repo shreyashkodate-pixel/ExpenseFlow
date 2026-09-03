@@ -14,6 +14,7 @@ from ..schemas.ai import (
     SpendingSpike,
     SavingTip,
     BudgetWarning,
+    PredictiveBudgetAlert,
 )
 from .ai.factory import get_ai_provider
 
@@ -94,25 +95,86 @@ def _get_user_spending_summary(db: Session, user_id: int) -> Dict[str, Any]:
         for e in sorted_by_amount[:3]
     ]
 
-    # Active budget
-    active_budget = db.query(Budget).filter(
+    # 3. Calculate predictive budget pacing for all active budgets
+    budgets = db.query(Budget).filter(
         Budget.user_id == user_id,
         Budget.month == today.month,
         Budget.year == today.year,
-        Budget.category_id.is_(None)
-    ).first()
+    ).all()
 
+    if today.month == 12:
+        next_month_start = date(today.year + 1, 1, 1)
+    else:
+        next_month_start = date(today.year, today.month + 1, 1)
+    total_days_in_month = (next_month_start - month_start).days
+    days_elapsed = max(1, today.day)
+    days_remaining = max(1, total_days_in_month - today.day)
+
+    predictive_pacing_data = []
     budget_info = None
-    if active_budget and active_budget.amount > 0:
-        budget_amt = float(active_budget.amount)
-        utilization_pct = round((current_month_total / budget_amt) * 100, 1)
-        budget_info = {
-            "monthly_budget": budget_amt,
-            "spent": current_month_total,
-            "remaining": max(0.0, budget_amt - current_month_total),
-            "utilization_pct": utilization_pct,
-            "days_remaining_in_month": (date(today.year, today.month + 1 if today.month < 12 else 1, 1) - today).days,
-        }
+
+    for b in budgets:
+        b_amt = float(b.amount)
+        if b_amt <= 0:
+            continue
+
+        if b.category_id is None:
+            cat_label = "Overall"
+            spent = current_month_total
+            budget_info = {
+                "monthly_budget": b_amt,
+                "spent": spent,
+                "remaining": max(0.0, b_amt - spent),
+                "utilization_pct": round((spent / b_amt) * 100, 1),
+                "days_remaining_in_month": days_remaining,
+            }
+        else:
+            cat_label = cat_map.get(b.category_id, "Category")
+            spent = month_cat_totals.get(cat_label, 0.0)
+
+        daily_burn = round(spent / days_elapsed, 2)
+        projected_total = round(daily_burn * total_days_in_month, 2)
+        rem_budget = max(0.0, b_amt - spent)
+        safe_ceiling = round(rem_budget / days_remaining, 2)
+
+        if spent >= b_amt:
+            pacing_status = "exceeded"
+            exhaustion_date = "Exceeded"
+            days_left = 0
+            alert_msg = f"You have already spent ₹{spent:,.0f} exceeding your {cat_label} budget of ₹{b_amt:,.0f} by ₹{spent - b_amt:,.0f}."
+        elif daily_burn > 0:
+            days_left = int(rem_budget / daily_burn)
+            if days_left < days_remaining:
+                exhaustion_day = min(total_days_in_month, today.day + days_left)
+                try:
+                    exhaustion_date = date(today.year, today.month, exhaustion_day).strftime("%B %d")
+                except ValueError:
+                    exhaustion_date = f"Day {exhaustion_day}"
+                pacing_status = "critical" if days_left <= 7 else "caution"
+                alert_msg = f"At your current pace of ₹{daily_burn:,.0f}/day on {cat_label}, you will exceed your ₹{b_amt:,.0f} budget by {exhaustion_date}. Limit spending to ₹{safe_ceiling:,.0f}/day to stay on track."
+            else:
+                pacing_status = "safe"
+                exhaustion_date = None
+                days_left = None
+                alert_msg = f"Your {cat_label} spending is on track at ₹{daily_burn:,.0f}/day. Your safe daily spending ceiling is ₹{safe_ceiling:,.0f}/day."
+        else:
+            pacing_status = "safe"
+            exhaustion_date = None
+            days_left = None
+            alert_msg = f"No spending yet on {cat_label}. Safe daily ceiling is ₹{safe_ceiling:,.0f}/day."
+
+        predictive_pacing_data.append({
+            "category": cat_label,
+            "current_spend": round(spent, 2),
+            "budget_limit": round(b_amt, 2),
+            "daily_burn_rate": daily_burn,
+            "projected_total": projected_total,
+            "projected_exhaustion_date": exhaustion_date,
+            "days_until_exhaustion": days_left,
+            "safe_daily_ceiling": safe_ceiling,
+            "pacing_status": pacing_status,
+            "alert_message": alert_msg,
+        })
 
     return {
         "total_expenses_count": len(month_expenses),
@@ -121,6 +183,7 @@ def _get_user_spending_summary(db: Session, user_id: int) -> Dict[str, Any]:
         "detected_surges": detected_surges,
         "top_transactions": top_transactions,
         "budget_info": budget_info,
+        "predictive_pacing_data": predictive_pacing_data,
     }
 
 
@@ -182,6 +245,9 @@ def get_ai_recommendations(db: Session, user_id: int, force_refresh: bool = Fals
         '  "saving_tips": [\n'
         '    {"title": "<Tip Title>", "description": "<Actionable advice>", "estimated_monthly_savings": <numeric amount in INR e.g. 2500>, "category": "<Category>"}\n'
         "  ],\n"
+        '  "predictive_budget_alerts": [\n'
+        '    {"category": "<Category or Overall>", "alert_message": "<Early warning e.g. At your current pace of ₹650/day on Shopping, you will exceed your ₹10,000 budget by the 18th. Limit spending to ₹280/day to stay on track.>"}\n'
+        "  ],\n"
         '  "budget_warnings": [\n'
         '    {"category": "<Category or Overall>", "status": "<warning | critical>", "message": "<Pacing alert e.g. At ₹650/day on Shopping, you will exceed your budget by the 18th.>"}\n'
         "  ],\n"
@@ -196,9 +262,9 @@ def get_ai_recommendations(db: Session, user_id: int, force_refresh: bool = Fals
 - Category Spending Breakdown: {summary.get('category_breakdown', {})}
 - Detected 7-Day Spending Surges: {summary.get('detected_surges', [])}
 - Top Individual Transactions: {summary.get('top_transactions', [])}
-- Budget Context: {summary.get('budget_info', 'No overall budget configured')}
+- Active Budgets & Pacing Projections: {summary.get('predictive_pacing_data', [])}
 
-Analyze these numbers. Pinpoint 1-2 unusual category spikes (if any), offer 2-3 specific, realistic saving recommendations with estimated ₹ monthly savings, highlight any budget pacing risks, and provide an overall financial health score.
+Analyze these numbers. Pinpoint 1-2 unusual category spikes (if any), offer 2-3 specific, realistic saving recommendations with estimated ₹ monthly savings, provide proactive early-warning predictive budget overspending alerts with daily spending limits, and provide an overall financial health score.
 """
 
     provider = get_ai_provider()
@@ -230,6 +296,32 @@ Analyze these numbers. Pinpoint 1-2 unusual category spikes (if any), offer 2-3 
             for t in raw_json.get("saving_tips", [])
         ]
 
+        # Build ground-truth predictive budget alerts
+        ai_alert_map = {
+            a.get("category"): a.get("alert_message")
+            for a in raw_json.get("predictive_budget_alerts", [])
+            if isinstance(a, dict) and a.get("category")
+        }
+
+        predictive_alerts = []
+        for p in summary.get("predictive_pacing_data", []):
+            cat = p.get("category", "Overall")
+            msg = ai_alert_map.get(cat) or p.get("alert_message", "")
+            predictive_alerts.append(
+                PredictiveBudgetAlert(
+                    category=cat,
+                    current_spend=p.get("current_spend", 0.0),
+                    budget_limit=p.get("budget_limit", 0.0),
+                    daily_burn_rate=p.get("daily_burn_rate", 0.0),
+                    projected_total=p.get("projected_total", 0.0),
+                    projected_exhaustion_date=p.get("projected_exhaustion_date"),
+                    days_until_exhaustion=p.get("days_until_exhaustion"),
+                    safe_daily_ceiling=p.get("safe_daily_ceiling", 0.0),
+                    pacing_status=p.get("pacing_status", "safe"),
+                    alert_message=msg,
+                )
+            )
+
         warnings = [
             BudgetWarning(
                 category=w.get("category", "Overall"),
@@ -257,6 +349,7 @@ Analyze these numbers. Pinpoint 1-2 unusual category spikes (if any), offer 2-3 
             spending_spikes=spikes,
             saving_tips=tips,
             budget_warnings=warnings,
+            predictive_budget_alerts=predictive_alerts,
             positive_habits=positive_habits,
             provider_used=settings.AI_PROVIDER,
             cached=False,
@@ -325,6 +418,22 @@ def _generate_fallback_recommendations(summary: Dict[str, Any], now: datetime) -
         score = 75
         status = "Good"
 
+    predictive_alerts = [
+        PredictiveBudgetAlert(
+            category=p.get("category", "Overall"),
+            current_spend=p.get("current_spend", 0.0),
+            budget_limit=p.get("budget_limit", 0.0),
+            daily_burn_rate=p.get("daily_burn_rate", 0.0),
+            projected_total=p.get("projected_total", 0.0),
+            projected_exhaustion_date=p.get("projected_exhaustion_date"),
+            days_until_exhaustion=p.get("days_until_exhaustion"),
+            safe_daily_ceiling=p.get("safe_daily_ceiling", 0.0),
+            pacing_status=p.get("pacing_status", "safe"),
+            alert_message=p.get("alert_message", ""),
+        )
+        for p in summary.get("predictive_pacing_data", [])
+    ]
+
     return AIRecommendationResponse(
         financial_health_score=score,
         health_status=status,
@@ -332,6 +441,7 @@ def _generate_fallback_recommendations(summary: Dict[str, Any], now: datetime) -
         spending_spikes=[],
         saving_tips=tips,
         budget_warnings=warnings,
+        predictive_budget_alerts=predictive_alerts,
         positive_habits=["Consistent expense tracking will reveal more optimization insights over time."],
         provider_used="rule-engine",
         cached=False,

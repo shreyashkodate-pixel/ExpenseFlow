@@ -364,6 +364,19 @@ The AI subsystem implements a **Provider-Agnostic Adapter Pattern** (`BaseAIProv
 | POST | `/api/v1/ai/recommendations/refresh` | Protected | — | `200` + AIRecommendations | Forces cache invalidation and generates fresh insights. Rate-limited (3 req/min). |
 | POST | `/api/v1/ai/chat` | Protected | Body: `{message: str}` | `200` + AIChatResponse | Natural language financial assistant grounded exclusively in user's anonymized spending aggregates. |
 
+#### AI Data Contract & Predictive Budget Alerts (Step 2):
+`AIRecommendationResponse` includes `predictive_budget_alerts: List[PredictiveBudgetAlert]`:
+* `category`: Budget category name or "Overall"
+* `current_spend`: Actual money spent so far this month (₹)
+* `budget_limit`: Configured budget cap (₹)
+* `daily_burn_rate`: Spending velocity (`current_spend / days_elapsed`) in ₹/day
+* `projected_total`: Month-end total forecast at current rate (`daily_burn_rate * total_days_in_month`)
+* `projected_exhaustion_date`: Forecasted exhaustion calendar day (e.g. "September 18" or "Exceeded")
+* `days_until_exhaustion`: Days remaining until budget runs out
+* `safe_daily_ceiling`: Recommended daily spending cap to stay within budget for the remaining days of the month
+* `pacing_status`: `"safe"` | `"caution"` | `"critical"` | `"exceeded"`
+* `alert_message`: Proactive early-warning pacing message generated with AI context
+
 #### AI Privacy & Isolation Rules:
 * User financial metrics are aggregated server-side for `current_user.id` only.
 * No Personally Identifiable Information (PII) such as email, name, or password is ever transmitted to external LLM APIs.

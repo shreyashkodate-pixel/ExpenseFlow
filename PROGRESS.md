@@ -152,10 +152,30 @@ Bootstrapped clean directory structure without clutter:
 - **Frontend Dashboard Integration**:
   - Built [`frontend/components/dashboard/AIInsightsCard.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/components/dashboard/AIInsightsCard.tsx) with glassmorphism design, animated financial health score badge, category surge cards, actionable saving tips, and animated refresh button.
   - Embedded into [`frontend/app/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/page.tsx).
+
+---
+
+### 12. Predictive Budget Overspending Alerts & Early-Warning Pacing (Step 2)
+- **Predictive Mathematical Pacing Engine**:
+  - Enhanced [`backend/app/services/ai_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai_service.py) with automated run-rate velocity forecasting:
+    - Daily burn rate (`current_spend / days_elapsed`) in ₹/day.
+    - Projected month-end spend (`daily_burn_rate * days_in_month`).
+    - Exhaustion date forecasting (e.g. *"Exhausts by September 18"*).
+    - Days remaining until exhaustion.
+    - Safe daily spending ceiling (`remaining_budget / days_remaining`) to stay on track.
+    - Pacing status classification: `safe`, `caution`, `critical`, `exceeded`.
+- **Schema & Data Contracts**:
+  - Added `PredictiveBudgetAlert` to [`backend/app/schemas/ai.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/schemas/ai.py) and [`frontend/types/ai.ts`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/types/ai.ts).
+- **Frontend Dashboard Forecast Section**:
+  - Upgraded [`frontend/components/dashboard/AIInsightsCard.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/components/dashboard/AIInsightsCard.tsx):
+    - Added dedicated **Predictive Budget Overspending Alerts & Pacing** section with color-coded status badges (`Critical Burn Rate`, `Caution Pacing`, `Safe Pacing`, `Budget Exceeded`).
+    - Pacing progress bar displaying % consumed and projected month-end spend.
+    - Dual metric pills: **Current Burn Rate** (₹/day) vs **Safe Daily Limit** (₹/day).
+    - AI-tailored proactive recommendations.
 - **Automated Verification**:
-  - Tests passing in [`backend/tests/test_ai.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/tests/test_ai.py) (provider factory switching, recommendations endpoint, caching, empty state, and data isolation).
-  - `npx pyright backend`: 0 errors.
-  - `npm run build`: 13/13 pages statically compiled with 0 errors.
+  - `backend/tests/test_ai.py::test_predictive_budget_overspending_alerts`: Passed.
+  - `npx pyright backend`: 0 errors, 0 warnings.
+  - `npm run build`: 13/13 pages compiled with 0 errors.
 
 
 

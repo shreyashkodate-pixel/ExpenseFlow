@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Sparkles, TrendingUp, RotateCw, Lightbulb, PiggyBank, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sparkles, TrendingUp, RotateCw, Lightbulb, PiggyBank, CheckCircle2, AlertTriangle, Flame, ShieldCheck, Clock } from 'lucide-react';
 import { AIRecommendationResponse } from '../../types/ai';
 import { getAIRecommendations, refreshAIRecommendations } from '../../lib/api/ai';
 import { useToast } from '../ui/toast';
@@ -66,6 +66,49 @@ export function AIInsightsCard() {
     return 'text-amber-500 bg-amber-500/10 border-amber-500/30';
   };
 
+  const getPacingStyle = (status: string) => {
+    switch (status) {
+      case 'exceeded':
+        return {
+          border: 'border-rose-500/30 dark:border-rose-500/20',
+          bg: 'bg-rose-500/5 dark:bg-rose-950/20',
+          badge: 'bg-rose-500/20 text-rose-500 dark:text-rose-400 border-rose-500/30',
+          bar: 'bg-rose-500',
+          icon: <AlertTriangle className="h-4 w-4 text-rose-500" />,
+          label: 'Budget Exceeded',
+        };
+      case 'critical':
+        return {
+          border: 'border-rose-500/30 dark:border-rose-500/20',
+          bg: 'bg-rose-500/5 dark:bg-rose-950/20',
+          badge: 'bg-rose-500/20 text-rose-500 dark:text-rose-400 border-rose-500/30',
+          bar: 'bg-rose-500',
+          icon: <Flame className="h-4 w-4 text-rose-500" />,
+          label: 'Critical Burn Rate',
+        };
+      case 'caution':
+        return {
+          border: 'border-amber-500/30 dark:border-amber-500/20',
+          bg: 'bg-amber-500/5 dark:bg-amber-950/20',
+          badge: 'bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/30',
+          bar: 'bg-amber-500',
+          icon: <Clock className="h-4 w-4 text-amber-500" />,
+          label: 'Caution Pacing',
+        };
+      default:
+        return {
+          border: 'border-emerald-500/30 dark:border-emerald-500/20',
+          bg: 'bg-emerald-500/5 dark:bg-emerald-950/20',
+          badge: 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border-emerald-500/30',
+          bar: 'bg-emerald-500',
+          icon: <ShieldCheck className="h-4 w-4 text-emerald-500" />,
+          label: 'Safe Pacing',
+        };
+    }
+  };
+
+  const predictiveAlerts = data.predictive_budget_alerts || [];
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/20 via-purple-950/10 to-slate-900/40 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:border-indigo-500/30 dark:border-indigo-500/20">
       {/* Decorative Glow Background */}
@@ -81,14 +124,14 @@ export function AIInsightsCard() {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-900 dark:text-white text-lg tracking-tight">
-                Smart Spending Insights
+                Smart Spending Insights & Forecast
               </h3>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 AI Powered ({data.provider_used})
               </span>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Personalized tips & spending surge analysis generated from your habits
+              Personalized tips, category surge analysis, and predictive overspending forecasts
             </p>
           </div>
         </div>
@@ -121,6 +164,88 @@ export function AIInsightsCard() {
           {data.headline}
         </p>
       </div>
+
+      {/* Predictive Budget Overspending Alerts (Step 2 Feature) */}
+      {predictiveAlerts.length > 0 && (
+        <div className="relative z-10 mt-5 space-y-3">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <Flame className="h-4 w-4 text-rose-500" />
+            <span>Predictive Budget Overspending Alerts & Pacing</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {predictiveAlerts.map((alert, idx) => {
+              const style = getPacingStyle(alert.pacing_status);
+              const progressPct = Math.min(100, Math.round((alert.current_spend / alert.budget_limit) * 100));
+
+              return (
+                <div
+                  key={idx}
+                  className={`rounded-xl border p-4 transition-all ${style.border} ${style.bg}`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      {style.icon}
+                      <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                        {alert.category} Budget
+                      </span>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border ${style.badge}`}>
+                      {alert.projected_exhaustion_date && alert.projected_exhaustion_date !== 'Exceeded'
+                        ? `Exhausts by ${alert.projected_exhaustion_date}`
+                        : style.label}
+                    </span>
+                  </div>
+
+                  {/* Pacing Progress Bar */}
+                  <div className="space-y-1 mb-3">
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>Spent: ₹{alert.current_spend.toLocaleString()}</span>
+                      <span>Limit: ₹{alert.budget_limit.toLocaleString()}</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${style.bar}`}
+                        style={{ width: `${progressPct}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 pt-0.5">
+                      <span>{progressPct}% consumed</span>
+                      <span>Projected: ₹{alert.projected_total.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Proactive Pacing Metrics */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="rounded-lg bg-gray-100/80 dark:bg-gray-800/60 p-2 text-center border border-gray-200/40 dark:border-gray-700/40">
+                      <span className="block text-2xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        Current Burn Rate
+                      </span>
+                      <span className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">
+                        ₹{alert.daily_burn_rate.toLocaleString()}/day
+                      </span>
+                    </div>
+
+                    <div className="rounded-lg bg-gray-100/80 dark:bg-gray-800/60 p-2 text-center border border-gray-200/40 dark:border-gray-700/40">
+                      <span className="block text-2xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        Safe Daily Limit
+                      </span>
+                      <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        ₹{alert.safe_daily_ceiling.toLocaleString()}/day
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* AI Advice Message */}
+                  <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-normal">
+                    {alert.alert_message}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Grid: Detected Spikes & Actionable Saving Tips */}
       <div className="relative z-10 mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">

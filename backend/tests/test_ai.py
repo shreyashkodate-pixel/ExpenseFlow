@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -148,5 +148,76 @@ def test_ai_recommendations_new_user_empty_state(client: TestClient, auth_user_b
     assert data["health_status"] == "Getting Started"
     assert len(data["spending_spikes"]) == 0
     assert len(data["saving_tips"]) >= 1
-    assert "Log Your First Few Expenses" in data["saving_tips"][0]["title"]
+    assert "Welcome to ExpenseFlow" in data["positive_habits"][0]
 
+
+def test_predictive_budget_overspending_alerts(client: TestClient, auth_user_a: dict):
+    """Verify predictive pacing, exhaustion forecasting, and daily ceiling calculations."""
+    auth_headers = auth_user_a["headers"]
+    today = datetime.now()
+
+    # Create an overall monthly budget of ₹3,000
+    b_res = client.post(
+        "/api/v1/budgets",
+        headers=auth_headers,
+        json={"month": today.month, "year": today.year, "amount": 3000.0, "category_id": None},
+    )
+    assert b_res.status_code in (200, 201)
+
+    # Add rapid spending (2 expenses so count >= 2) to simulate high burn rate
+    cat_res = client.get("/api/v1/categories", headers=auth_headers)
+    cat_id = cat_res.json()[0]["id"]
+    client.post(
+        "/api/v1/expenses",
+        headers=auth_headers,
+        json={
+            "amount": 1500.0,
+            "category_id": cat_id,
+            "date": today.strftime("%Y-%m-%d"),
+            "description": "High velocity spending test 1",
+        },
+    )
+    client.post(
+        "/api/v1/expenses",
+        headers=auth_headers,
+        json={
+            "amount": 1000.0,
+            "category_id": cat_id,
+            "date": today.strftime("%Y-%m-%d"),
+            "description": "High velocity spending test 2",
+        },
+    )
+
+    mock_llm_json = {
+        "financial_health_score": 45,
+        "health_status": "Needs Attention",
+        "headline": "High burn rate detected on overall monthly budget.",
+        "spending_spikes": [],
+        "saving_tips": [],
+        "predictive_budget_alerts": [
+            {
+                "category": "Overall",
+                "alert_message": "At your current pace, you will exceed your ₹3,000 budget well before month-end.",
+                "current_spend": 2500.0,
+                "budget_limit": 3000.0,
+                "daily_burn_rate": 150.0,
+                "safe_daily_ceiling": 50.0,
+                "pacing_status": "critical"
+            }
+        ],
+        "budget_warnings": [],
+        "positive_habits": [],
+    }
+
+    with patch("app.services.ai.gemini_provider.GeminiProvider.generate_structured_json", return_value=mock_llm_json):
+        res = client.post("/api/v1/ai/recommendations/refresh", headers=auth_headers)
+        assert res.status_code == 200
+        data = res.json()
+        assert len(data["predictive_budget_alerts"]) >= 1
+        alert = next(a for a in data["predictive_budget_alerts"] if a["category"] == "Overall")
+        assert alert["current_spend"] >= 2500.0
+        assert alert["budget_limit"] == 3000.0
+        assert alert["daily_burn_rate"] > 0
+        assert alert["safe_daily_ceiling"] >= 0
+        assert alert["pacing_status"] in ("critical", "caution", "exceeded")
+        assert "3,000" in alert["alert_message"]
