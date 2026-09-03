@@ -71,3 +71,26 @@ class RegistrationResponse(BaseModel):
     message: str
     email: EmailStr
 
+
+class RegistrationSendOtpRequest(BaseModel):
+    email: EmailStr
+
+
+class RegistrationVerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class RegistrationVerifyOtpResponse(BaseModel):
+    status: str = "verified"
+    email: EmailStr
+    verification_token: str
+    message: str
+
+
+class RegistrationCompleteRequest(BaseModel):
+    email: EmailStr
+    verification_token: str = Field(..., min_length=10)
+    full_name: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(..., min_length=8, max_length=128)
+

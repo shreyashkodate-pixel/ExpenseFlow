@@ -55,3 +55,30 @@ export interface RegistrationResponse {
   email: string;
 }
 
+export interface SendRegistrationOtpResponse {
+  status: string;
+  email: string;
+  message: string;
+}
+
+export interface VerifyRegistrationOtpResponse {
+  status: string;
+  email: string;
+  verification_token: string;
+  message: string;
+}
+
+export interface CompleteRegistrationData {
+  email: string;
+  verification_token: string;
+  full_name: string;
+  password: string;
+}
+
+export interface CompleteRegistrationResponse {
+  status: string;
+  message: string;
+  email: string;
+}
+
+

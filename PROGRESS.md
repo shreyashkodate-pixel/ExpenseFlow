@@ -116,3 +116,24 @@ Bootstrapped clean directory structure without clutter:
 ### 9. Progressive Web App (PWA) & Mobile Installation
 - Web App Manifest ([`public/manifest.json`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/public/manifest.json)), Service Worker ([`public/sw.js`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/public/sw.js)), adaptive icons, and in-app install modal.
 
+---
+
+### 10. 4-Step OTP Registration & Account Creation Workflow
+- **Database Model & Migration**:
+  - Added [`backend/app/models/email_verification_otp.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/models/email_verification_otp.py) and Alembic migration [`backend/alembic/versions/9c1a2b3d4e5f_email_verification_otps.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/alembic/versions/9c1a2b3d4e5f_email_verification_otps.py).
+  - Enforces zero premature insertions in `users` table: temporary records track hashed 6-digit OTPs with 10-minute expiry and 5-attempt lockouts.
+- **Resend HTTPS REST API Delivery**:
+  - Enhanced [`backend/app/services/email_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/email_service.py) with dual-mode delivery: dispatches via Resend HTTPS REST API (Port 443) when `re_` key is detected (bypassing Render Free Tier SMTP port 587 block), with standard `smtplib` fallback.
+  - Designed branded 6-digit OTP email template with large centered digit badge.
+- **REST API Endpoints**:
+  - `POST /api/v1/auth/register/send-otp`: Step 1 Email submission & OTP generation.
+  - `POST /api/v1/auth/register/verify-otp`: Step 2 OTP verification & session token issuance.
+  - `POST /api/v1/auth/register/complete`: Step 3 & 4 user creation in `users` table, OTP cleanup, and welcome email trigger.
+- **Frontend Multi-Step Wizard**:
+  - Upgraded [`frontend/app/register/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/register/page.tsx) with a modern 3-step UI wizard (Email ➔ 6 individual OTP digit boxes with paste support and 60s cooldown ➔ Profile completion with live password strength meter ➔ Redirect to `/login?registered=true`).
+- **Automated Verification**:
+  - All unit & integration tests passing (`15/15` auth tests, `34/34` total backend tests).
+  - Type checks passing (`pyright backend`: 0 errors).
+  - Production build passing (`npm run build`: 13/13 pages statically compiled).
+
+

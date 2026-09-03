@@ -195,10 +195,99 @@ def test_welcome_email_service():
     assert send_welcome_email("testwelcome_noname@example.com", None) is True
 
 
-def test_verification_email_service():
-    from app.services.email_service import send_verification_email
+def test_registration_otp_email_service():
+    from app.services.email_service import send_registration_otp_email
     # Dev mode / unconfigured SMTP should succeed safely
-    assert send_verification_email("testverify@example.com", "dummy_token_123", "Test User") is True
-    assert send_verification_email("testverify_noname@example.com", "dummy_token_123", None) is True
+    assert send_registration_otp_email("testotp@example.com", "654321") is True
+
+
+def test_four_step_otp_registration_flow(client, db_session):
+    from app.models.user import User
+    from app.models.email_verification_otp import EmailVerificationOtp
+    from app.services import auth_service
+
+    test_email = "fourstep_user@example.com"
+    test_password = "SecurePassword4Step123!"
+    test_name = "Four Step Tester"
+
+    # Step 1: Send OTP
+    send_resp = client.post("/api/v1/auth/register/send-otp", json={
+        "email": test_email
+    })
+    assert send_resp.status_code == 200
+    assert send_resp.json()["status"] == "otp_sent"
+
+    # VERIFY: User must NOT be in the users table yet!
+    user_in_db = db_session.query(User).filter(User.email == test_email).first()
+    assert user_in_db is None
+
+    # Retrieve the OTP that was generated for testing
+    otp_record = db_session.query(EmailVerificationOtp).filter(EmailVerificationOtp.email == test_email).first()
+    assert otp_record is not None
+    assert otp_record.is_verified is False
+
+    # Generate deterministic OTP via auth_service for testing verification endpoint
+    otp_code = auth_service.request_registration_otp(db_session, test_email)
+
+    # Step 2: Try invalid OTP -> 400 INVALID_OTP
+    invalid_resp = client.post("/api/v1/auth/register/verify-otp", json={
+        "email": test_email,
+        "otp": "000000"
+    })
+    assert invalid_resp.status_code == 400
+    assert invalid_resp.json()["error_code"] == "INVALID_OTP"
+
+    # Step 2: Submit valid OTP -> 200 verified
+    verify_resp = client.post("/api/v1/auth/register/verify-otp", json={
+        "email": test_email,
+        "otp": otp_code
+    })
+    assert verify_resp.status_code == 200
+    verify_data = verify_resp.json()
+    assert verify_data["status"] == "verified"
+    verification_token = verify_data["verification_token"]
+    assert verification_token is not None
+
+    # VERIFY: User must STILL NOT be in the users table yet!
+    user_still_none = db_session.query(User).filter(User.email == test_email).first()
+    assert user_still_none is None
+
+    # Step 3 & 4: Complete Profile & Register Account
+    complete_resp = client.post("/api/v1/auth/register/complete", json={
+        "email": test_email,
+        "verification_token": verification_token,
+        "full_name": test_name,
+        "password": test_password
+    })
+    assert complete_resp.status_code == 201
+    assert complete_resp.json()["status"] == "success"
+
+    # VERIFY: Now and only now, the user IS created in the database!
+    registered_user = db_session.query(User).filter(User.email == test_email).first()
+    assert registered_user is not None
+    assert registered_user.full_name == test_name
+    assert registered_user.is_verified is True
+    assert registered_user.is_active is True
+
+    # VERIFY: OTP record is cleaned up
+    cleaned_otp = db_session.query(EmailVerificationOtp).filter(EmailVerificationOtp.email == test_email).first()
+    assert cleaned_otp is None
+
+    # VERIFY: User can now successfully log in
+    login_resp = client.post("/api/v1/auth/login", json={
+        "email": test_email,
+        "password": test_password
+    })
+    assert login_resp.status_code == 200
+    assert "access_token" in login_resp.json()
+
+
+def test_send_otp_duplicate_email(client, auth_user_a):
+    resp = client.post("/api/v1/auth/register/send-otp", json={
+        "email": "user_a@example.com"
+    })
+    assert resp.status_code == 400
+    assert resp.json()["error_code"] == "EMAIL_ALREADY_EXISTS"
+
 
 

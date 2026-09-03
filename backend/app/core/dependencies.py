@@ -1,6 +1,6 @@
 import time
 from collections import defaultdict
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Callable
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -85,7 +85,11 @@ def get_optional_current_user(
 _request_history: Dict[str, List[float]] = defaultdict(list)
 
 
-def rate_limit(key_prefix: str, max_requests: int = 10, window_seconds: int = 60):
+def rate_limit(
+    key_prefix: str,
+    max_requests: int = 10,
+    window_seconds: int = 60
+) -> Callable[[Request], bool]:
     """
     Rate limiting dependency function.
     Tracks client IP within sliding window of window_seconds.

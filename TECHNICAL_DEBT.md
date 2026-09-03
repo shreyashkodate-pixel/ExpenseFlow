@@ -79,14 +79,13 @@ This document tracks completed features, system architecture status, operational
    - *Limitation*: In Resend's free/sandbox mode, outgoing emails are restricted **strictly** to the account owner's email address. Any registration from an external email address is rejected by Resend with `451: You can only send to your verified email address while in sandbox mode`.
    - *Action Item*: Configure and verify a custom domain (e.g. `expenseflow.app` or user-owned domain) in the Resend dashboard by adding DKIM, SPF, and DMARC DNS records. Once verified, update `SMTP_FROM_EMAIL=noreply@yourdomain.com`.
 
-2. **Background Email Task Reliability & Queuing**:
-   - *Status*: Transactional emails are currently queued using FastAPI's in-process `BackgroundTasks`.
-   - *Limitation*: If the server container restarts while a task is queued, or if the SMTP connection hangs, workers may experience delays.
-   - *Action Item*: As traffic scales, move email delivery to an asynchronous task queue (e.g., Celery/ARQ with Redis) or use Resend's REST API with async `httpx` instead of synchronous SMTP connection pools.
+2. **Render Free Tier Port Block & Resend REST API (Resolved)**:
+   - *Status*: Render Free Tier blocks outbound ports 25, 465, and 587.
+   - *Resolution*: Implemented Resend HTTPS REST API delivery via `httpx` (Port 443) in [`backend/app/services/email_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/email_service.py). Outbound verification codes and welcome emails now bypass SMTP socket restrictions and deliver instantly.
+   - *Follow-up*: For high volume, transition from in-process `BackgroundTasks` to Celery/Redis queue as traffic scales.
 
-3. **Frontend Resend Cooldown Timer**:
-   - *Status*: Basic rate limiting is enforced on the backend endpoint (`5 requests / 60 seconds`).
-   - *Enhancement*: Add a visual 60-second cooldown timer on the frontend "Resend Verification Email" button to prevent repeated clicks and provide clear user feedback.
+3. **Frontend Resend Cooldown Timer (Resolved for OTP)**:
+   - *Status*: Completed on [`frontend/app/register/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/register/page.tsx) with a responsive 60-second animated cooldown timer and state disabling.
 
 ---
 

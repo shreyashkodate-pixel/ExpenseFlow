@@ -1,4 +1,5 @@
 import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 import httpx
@@ -23,6 +24,7 @@ from ..models.user import User
 from ..models.refresh_token import RefreshToken
 from ..models.password_reset_token import PasswordResetToken
 from ..models.email_verification_token import EmailVerificationToken
+from ..models.email_verification_otp import EmailVerificationOtp
 from ..schemas.auth import (
     UserRegister,
     UserLogin,
@@ -37,6 +39,146 @@ def _is_expired(expires_at: datetime) -> bool:
     if expires_at.tzinfo is None:
         return expires_at < datetime.now(timezone.utc).replace(tzinfo=None)
     return expires_at < datetime.now(timezone.utc)
+
+
+def request_registration_otp(db: Session, email: str) -> str:
+    """
+    Step 1 & 2: Initiate registration by generating and persisting a 6-digit numeric OTP.
+    Checks if email already exists in `users` before dispatching OTP.
+    """
+    cleaned_email = email.strip().lower()
+    existing_user = db.query(User).filter(func.lower(User.email) == cleaned_email).first()
+    if existing_user:
+        raise BadRequestException(
+            detail="An account with this email address already exists.",
+            error_code="EMAIL_ALREADY_EXISTS"
+        )
+
+    # Generate 6-digit numeric code
+    otp_code = f"{secrets.randbelow(900000) + 100000:06d}"
+    otp_hash = hash_token(otp_code)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+    # Upsert pending OTP record
+    record = db.query(EmailVerificationOtp).filter(
+        func.lower(EmailVerificationOtp.email) == cleaned_email
+    ).first()
+
+    if record:
+        record.otp_hash = otp_hash
+        record.expires_at = expires_at
+        record.is_verified = False
+        record.attempts = 0
+        record.verification_token_hash = None
+        record.token_expires_at = None
+    else:
+        record = EmailVerificationOtp(
+            email=cleaned_email,
+            otp_hash=otp_hash,
+            expires_at=expires_at,
+            is_verified=False,
+            attempts=0,
+        )
+        db.add(record)
+
+    db.commit()
+    return otp_code
+
+
+def verify_registration_otp(db: Session, email: str, otp: str) -> str:
+    """
+    Step 2: Verify the 6-digit OTP code.
+    If valid, marks email as verified and issues a single-use verification session token.
+    """
+    cleaned_email = email.strip().lower()
+    record = db.query(EmailVerificationOtp).filter(
+        func.lower(EmailVerificationOtp.email) == cleaned_email
+    ).first()
+
+    if not record or _is_expired(record.expires_at):
+        raise BadRequestException(
+            detail="Verification code has expired or was not requested. Please request a new code.",
+            error_code="OTP_EXPIRED"
+        )
+
+    if record.attempts >= 5:
+        raise BadRequestException(
+            detail="Too many incorrect verification attempts. Please request a new code.",
+            error_code="MAX_ATTEMPTS_EXCEEDED"
+        )
+
+    provided_hash = hash_token(otp.strip())
+    if provided_hash != record.otp_hash:
+        record.attempts += 1
+        db.commit()
+        remaining = max(0, 5 - record.attempts)
+        raise BadRequestException(
+            detail=f"Invalid verification code. {remaining} attempt(s) remaining.",
+            error_code="INVALID_OTP"
+        )
+
+    # Generate single-use verification token (valid for 30 minutes to complete profile)
+    raw_verification_token, token_hash = generate_random_token(64)
+    record.is_verified = True
+    record.verification_token_hash = token_hash
+    record.token_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    db.commit()
+
+    return raw_verification_token
+
+
+def complete_registration(
+    db: Session,
+    email: str,
+    verification_token: str,
+    full_name: str,
+    password: str
+) -> User:
+    """
+    Step 3 & 4: Complete profile and register user in the `users` database table.
+    Ensures email was verified through valid OTP session before any user row is created.
+    """
+    cleaned_email = email.strip().lower()
+
+    # Ensure no race condition with duplicate email
+    existing_user = db.query(User).filter(func.lower(User.email) == cleaned_email).first()
+    if existing_user:
+        raise BadRequestException(
+            detail="An account with this email already exists.",
+            error_code="EMAIL_ALREADY_EXISTS"
+        )
+
+    record = db.query(EmailVerificationOtp).filter(
+        func.lower(EmailVerificationOtp.email) == cleaned_email
+    ).first()
+
+    if not record or not record.is_verified or not record.token_expires_at or _is_expired(record.token_expires_at):
+        raise BadRequestException(
+            detail="Email verification session has expired. Please verify your email again.",
+            error_code="VERIFICATION_EXPIRED"
+        )
+
+    token_hash = hash_token(verification_token.strip())
+    if not record.verification_token_hash or token_hash != record.verification_token_hash:
+        raise BadRequestException(
+            detail="Invalid email verification proof token.",
+            error_code="INVALID_VERIFICATION_TOKEN"
+        )
+
+    # Commit user to database table NOW AND ONLY NOW
+    user = User(
+        email=cleaned_email,
+        hashed_password=get_password_hash(password),
+        full_name=full_name.strip() if full_name else None,
+        is_verified=True,
+        is_active=True,
+    )
+    db.add(user)
+    db.delete(record)
+    db.commit()
+    db.refresh(user)
+
+    return user
 
 
 def register_user(
@@ -143,7 +285,7 @@ def request_resend_verification(db: Session, email: str) -> Tuple[User, str]:
     # Invalidate previous unused tokens for this user
     db.query(EmailVerificationToken).filter(
         EmailVerificationToken.user_id == user.id,
-        EmailVerificationToken.used == False
+        EmailVerificationToken.used.is_(False)
     ).update({"used": True})
 
     # Generate new token
@@ -411,7 +553,7 @@ def revoke_all_user_sessions(db: Session, user_id: int) -> None:
     """Revoke all active refresh tokens for a given user across all devices."""
     db.query(RefreshToken).filter(
         RefreshToken.user_id == user_id,
-        RefreshToken.is_revoked == False
+        RefreshToken.is_revoked.is_(False)
     ).update(
         {"is_revoked": True, "revoked_at": datetime.now(timezone.utc)},
         synchronize_session=False
@@ -421,24 +563,30 @@ def revoke_all_user_sessions(db: Session, user_id: int) -> None:
 
 def request_password_reset(db: Session, email: str) -> Optional[str]:
     """
-    Generate single-use password reset token with 1-hour expiry.
-    Returns raw token if user exists, else None.
+    Generate single-use password reset token if account exists.
+    Returns raw token on success, None if account does not exist.
     """
     cleaned_email = email.strip().lower()
     user = db.query(User).filter(func.lower(User.email) == cleaned_email).first()
     if not user:
         return None
 
-    raw_token, token_hash = generate_random_token(48)
+    # Invalidate existing unused password reset tokens
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.used.is_(False)
+    ).update({"used": True})
+
+    raw_token, token_hash = generate_random_token(64)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.PASSWORD_RESET_EXPIRE_MINUTES)
 
-    reset_record = PasswordResetToken(
+    record = PasswordResetToken(
         user_id=user.id,
         token_hash=token_hash,
         used=False,
         expires_at=expires_at,
     )
-    db.add(reset_record)
+    db.add(record)
     db.commit()
 
     return raw_token
@@ -449,7 +597,6 @@ def reset_password(db: Session, raw_token: str, new_password: str) -> None:
     token_hash = hash_token(raw_token)
     reset_record = db.query(PasswordResetToken).filter(PasswordResetToken.token_hash == token_hash).first()
 
-    now = datetime.now(timezone.utc)
     if not reset_record or reset_record.used or _is_expired(reset_record.expires_at):
         raise BadRequestException(
             detail="Password reset link is invalid or has expired",

@@ -21,6 +21,10 @@ from ...schemas.auth import (
     VerifyEmailRequest,
     ResendVerificationRequest,
     RegistrationResponse,
+    RegistrationSendOtpRequest,
+    RegistrationVerifyOtpRequest,
+    RegistrationVerifyOtpResponse,
+    RegistrationCompleteRequest,
 )
 from ...services import auth_service, email_service
 
@@ -73,6 +77,72 @@ def _clear_refresh_cookie(response: Response) -> None:
     )
 
 
+@router.post("/register/send-otp")
+def register_send_otp(
+    schema: RegistrationSendOtpRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    _limit=Depends(rate_limit("auth:send_otp", max_requests=6, window_seconds=60)),
+):
+    """Step 1 & 2: Validate email, generate 6-digit OTP, and dispatch verification email."""
+    otp_code = auth_service.request_registration_otp(db, schema.email)
+    logger.info(f"Dispatching registration OTP email task for: {schema.email}")
+    background_tasks.add_task(
+        email_service.send_registration_otp_email,
+        to_email=schema.email,
+        otp_code=otp_code,
+    )
+    return {
+        "status": "otp_sent",
+        "email": schema.email,
+        "message": "A 6-digit verification code has been sent to your email.",
+    }
+
+
+@router.post("/register/verify-otp", response_model=RegistrationVerifyOtpResponse)
+def register_verify_otp(
+    schema: RegistrationVerifyOtpRequest,
+    db: Session = Depends(get_db),
+    _limit=Depends(rate_limit("auth:verify_otp", max_requests=10, window_seconds=60)),
+):
+    """Step 2: Verify the 6-digit OTP code and issue email verification proof token."""
+    verification_token = auth_service.verify_registration_otp(db, schema.email, schema.otp)
+    return RegistrationVerifyOtpResponse(
+        status="verified",
+        email=schema.email,
+        verification_token=verification_token,
+        message="Email verified successfully! Please complete your profile to finish registration.",
+    )
+
+
+@router.post("/register/complete", status_code=status.HTTP_201_CREATED)
+def register_complete(
+    schema: RegistrationCompleteRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    _limit=Depends(rate_limit("auth:register_complete", max_requests=10, window_seconds=60)),
+):
+    """Step 3 & 4: Insert new user into `users` table now and only now that email is verified."""
+    user = auth_service.complete_registration(
+        db,
+        email=schema.email,
+        verification_token=schema.verification_token,
+        full_name=schema.full_name,
+        password=schema.password,
+    )
+    logger.info(f"Account registered in DB for: {user.email}")
+    background_tasks.add_task(
+        email_service.send_welcome_email,
+        to_email=user.email,
+        full_name=user.full_name,
+    )
+    return {
+        "status": "success",
+        "message": "Account created successfully! Please sign in with your email and password.",
+        "email": user.email,
+    }
+
+
 @router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
 def register(
     schema: UserRegister,
@@ -80,7 +150,7 @@ def register(
     db: Session = Depends(get_db),
     _limit=Depends(rate_limit("auth:register", max_requests=10, window_seconds=60)),
 ):
-    """Register a new unverified user and dispatch account verification email link."""
+    """Register a new unverified user and dispatch account verification email link (legacy)."""
     user, raw_verification_token = auth_service.register_user(db, schema)
 
     logger.info(f"Dispatching verification email task for: {user.email}")

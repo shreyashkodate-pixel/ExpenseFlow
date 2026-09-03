@@ -10,7 +10,23 @@ import {
   PasswordResetConfirmData,
   GenericStatusResponse,
   RegistrationResponse,
+  SendRegistrationOtpResponse,
+  VerifyRegistrationOtpResponse,
+  CompleteRegistrationData,
+  CompleteRegistrationResponse,
 } from '../../types/auth';
+
+export async function sendRegistrationOtp(email: string): Promise<SendRegistrationOtpResponse> {
+  return apiPost<SendRegistrationOtpResponse>('/auth/register/send-otp', { email });
+}
+
+export async function verifyRegistrationOtp(email: string, otp: string): Promise<VerifyRegistrationOtpResponse> {
+  return apiPost<VerifyRegistrationOtpResponse>('/auth/register/verify-otp', { email, otp });
+}
+
+export async function completeRegistration(data: CompleteRegistrationData): Promise<CompleteRegistrationResponse> {
+  return apiPost<CompleteRegistrationResponse>('/auth/register/complete', data);
+}
 
 export async function register(data: RegisterData): Promise<RegistrationResponse> {
   const res = await apiPost<RegistrationResponse>('/auth/register', data);
