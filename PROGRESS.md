@@ -1,6 +1,6 @@
 # ExpenseFlow — Progress Log
 
-**Last Updated:** September 1, 2026
+**Last Updated:** September 3, 2026
 
 ---
 
@@ -53,19 +53,40 @@ Bootstrapped clean directory structure without clutter:
 
 ### 5. Backend REST API Layer & Automated Testing
 - **Services & Routers (`/api/v1`)**:
-  - [`auth.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/auth.py): 11 authentication and session management endpoints with rate limiting.
+  - [`auth.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/auth.py): 13 authentication and session management endpoints with rate limiting, including new `/verify-email` and `/resend-verification`.
   - [`categories.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/categories.py): User-scoped category CRUD and in-use reassignment protection (`?reassign_to=`).
   - [`expenses.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/expenses.py): User-scoped paginated listing, search, filtering, CRUD, and CSV/PDF exports.
   - [`budgets.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/budgets.py): User-scoped target budget creation/upsert and real-time status calculation.
   - [`dashboard.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/dashboard.py): User-scoped aggregated metrics with route aliases.
   - [`analytics.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/analytics.py): User-scoped daily, monthly, and yearly spending trends.
-  - [`email_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/email_service.py): SMTP transactional email delivery for both branded password reset links and new user registration welcome emails.
+  - [`email_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/email_service.py): SMTP transactional email delivery with rich branded HTML templates for:
+    1. **Account Verification Email** (24-hour single-use token link)
+    2. **Welcome & Onboarding Email** (dispatched upon account activation)
+    3. **Password Reset Email** (60-minute single-use token link)
 - **Verification & Tests**:
-  - Automated Test Suite: All **28/28 unit tests passing (100%)** in `backend/tests/`.
+  - Automated Test Suite: All **32/32 unit & integration tests passing (100%)** in `backend/tests/`.
 
 ---
 
-### 6. Production Containerization & Live Deployment
+### 6. Two-Step Email Verification & Account Activation Flow
+- **Email Verification Tokens (`email_verification_tokens` table)**:
+  - Added ORM model [`backend/app/models/email_verification_token.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/models/email_verification_token.py) and Alembic migration [`backend/alembic/versions/8b9f0e2a3c4d_email_verification_tokens.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/alembic/versions/8b9f0e2a3c4d_email_verification_tokens.py).
+  - Secure token storage using SHA-256 hashing and expiration enforcement (24 hours).
+- **Mandatory Verification on Registration**:
+  - `POST /api/v1/auth/register` creates user with `is_verified=False` and immediately dispatches verification email via FastAPI `BackgroundTasks`.
+  - Unverified accounts attempting login are blocked with `403 Forbidden` (`EMAIL_NOT_VERIFIED`).
+- **Activation & Welcome Sequence**:
+  - `POST /api/v1/auth/verify-email` validates token, sets `is_verified=True`, creates user session (cookies), and dispatches the welcome onboarding email.
+  - `POST /api/v1/auth/resend-verification` invalidates previous tokens and generates a fresh verification link.
+- **Frontend Verification UX**:
+  - Created [`frontend/app/verify-email/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/verify-email/page.tsx): automatic verification on load, animated confirmation, and inline resend flow.
+  - Updated [`frontend/app/register/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/register/page.tsx): displays "Verify Your Email Address" screen with resend link.
+  - Updated [`frontend/app/login/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/login/page.tsx): detects `EMAIL_NOT_VERIFIED` code and renders a 1-click "Resend Verification Email" button.
+
+
+---
+
+### 7. Production Containerization & Live Deployment
 - **Docker Setup**:
   - Created [`backend/Dockerfile`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/Dockerfile) with lightweight Python 3.11-slim & automatic migrations.
   - Created [`frontend/Dockerfile`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/Dockerfile) with multi-stage Node 20-alpine runner.
@@ -77,12 +98,13 @@ Bootstrapped clean directory structure without clutter:
 
 ---
 
-### 7. Frontend UI, Authentication & User Experience
+### 8. Frontend UI, Authentication & User Experience
 - **Authentication Pages & State**:
   - [`/login`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/login/page.tsx): Sign In with email/password, Google GIS button, and registration success banner.
   - [`/register`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/register/page.tsx): Registration form with real-time password strength meter, redirecting to login.
   - [`/forgot-password`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/forgot-password/page.tsx): Email-only password recovery with 404 validation for unregistered emails.
   - [`/reset-password`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/reset-password/page.tsx): Password reset with single-use token verification.
+  - [`/verify-email`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/verify-email/page.tsx): Email token activation with automated sign-in transition.
   - [`/settings`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/settings/page.tsx): Categories Management and Account & Security tab (Profile, Password Change, Logout All Devices).
 - **Session & Routing**:
   - `AuthProvider` and `ProtectedRoute` guarding private routes.
@@ -91,5 +113,6 @@ Bootstrapped clean directory structure without clutter:
 
 ---
 
-### 8. Progressive Web App (PWA) & Mobile Installation
+### 9. Progressive Web App (PWA) & Mobile Installation
 - Web App Manifest ([`public/manifest.json`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/public/manifest.json)), Service Worker ([`public/sw.js`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/public/sw.js)), adaptive icons, and in-app install modal.
+
