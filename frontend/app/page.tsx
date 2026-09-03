@@ -8,6 +8,7 @@ import { Header } from '../components/shared/Header';
 import { SummaryCards } from '../components/dashboard/SummaryCards';
 import { RecentExpenses } from '../components/dashboard/RecentExpenses';
 import { BudgetOverviewWidget } from '../components/dashboard/BudgetOverviewWidget';
+import { AIInsightsCard } from '../components/dashboard/AIInsightsCard';
 import { ExpenseFormModal } from '../components/expenses/ExpenseFormModal';
 import { useToast } from '../components/ui/toast';
 import { useCategories } from '../hooks/useCategories';
@@ -66,6 +67,9 @@ export default function DashboardPage() {
 
       {/* Top Metric Cards */}
       <SummaryCards summary={summary} loading={loading} />
+
+      {/* AI Smart Spending Insights & Recommendations */}
+      <AIInsightsCard />
 
       {/* Grid: Recent Activity & Budget Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

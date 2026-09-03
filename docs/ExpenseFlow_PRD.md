@@ -167,6 +167,17 @@ The product is built around a frictionless daily logging loop backed by strong a
 | **FR-18** | **CSV Export** | Download spreadsheet-compatible CSV file containing all filtered expenses. |
 | **FR-19** | **PDF Report Export** | Generate formatted PDF financial summary document with transaction records. |
 
+### 7.9 AI Financial Intelligence & Smart Recommendations
+| ID | Requirement | Description |
+|---|---|---|
+| **FR-20** | **Smart Spending Insights & Saving Tips** | Automatically detects unusual spending spikes (e.g. *"You spent 42% more on Dining Out this week"*) and calculates tangible monthly saving opportunities (e.g. *"Trimming 2 delivery orders/week saves ₹3,500/month"*). |
+| **FR-21** | **Predictive Budget Alerts & Pacing** | Analyzes daily run-rates against monthly targets to alert users early if a category is pacing towards budget exhaustion. |
+| **FR-22** | **Subscription & Recurring Audit** | Identifies recurring monthly charges (utilities, streaming, gym) and summarizes monthly recurring overhead. |
+| **FR-23** | **50/30/20 Budget Optimization** | Automatically categorizes spending into Needs, Wants, and Savings and advises adjustments to reach target savings goals. |
+| **FR-24** | **Conversational Financial Assistant** | Interactive chat drawer enabling natural language questions about spending habits, totals, and saving plans. |
+| **FR-25** | **Multi-Provider AI Flexibility & Privacy** | Environment-driven AI architecture capable of running with Google Gemini, ChatGPT (OpenAI), or Claude with zero hardcoding, strictly preserving user data isolation and anonymity. |
+
+
 ---
 
 ## 8. Key User Journeys

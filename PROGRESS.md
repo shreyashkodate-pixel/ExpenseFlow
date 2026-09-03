@@ -136,4 +136,26 @@ Bootstrapped clean directory structure without clutter:
   - Type checks passing (`pyright backend`: 0 errors).
   - Production build passing (`npm run build`: 13/13 pages statically compiled).
 
+---
+
+### 11. Multi-Provider AI Recommendation Engine & Smart Spending Insights (Step 1)
+- **Multi-Provider Adapter Architecture**:
+  - Implemented [`BaseAIProvider`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai/base.py) with concrete adapters: [`GeminiProvider`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai/gemini_provider.py) (Google Gemini REST API), [`OpenAIProvider`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai/openai_provider.py) (ChatGPT / OpenAI format), and [`ClaudeProvider`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai/claude_provider.py) (Anthropic Claude format).
+  - Environment-driven factory [`get_ai_provider()`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai/factory.py) reading `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` with zero hardcoding.
+- **Financial Intelligence & Spike Detection Service**:
+  - [`backend/app/services/ai_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai_service.py) securely pre-aggregates user-scoped metrics: 7-day vs 30-day category comparisons, spending surges (e.g. +42% on Dining Out), top expenses, and budget utilization.
+  - Strict privacy: zero user PII (names, emails, passwords) sent to external LLMs.
+  - In-memory sliding cache per user with 6-hour TTL and manual rate-limited refresh.
+- **REST Endpoints & Routing**:
+  - Registered `ai_router` in [`backend/app/routers/v1/api.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/routers/v1/api.py).
+  - `GET /api/v1/ai/recommendations` and `POST /api/v1/ai/recommendations/refresh`.
+- **Frontend Dashboard Integration**:
+  - Built [`frontend/components/dashboard/AIInsightsCard.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/components/dashboard/AIInsightsCard.tsx) with glassmorphism design, animated financial health score badge, category surge cards, actionable saving tips, and animated refresh button.
+  - Embedded into [`frontend/app/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/page.tsx).
+- **Automated Verification**:
+  - Tests passing in [`backend/tests/test_ai.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/tests/test_ai.py) (provider factory switching, recommendations endpoint, caching, empty state, and data isolation).
+  - `npx pyright backend`: 0 errors.
+  - `npm run build`: 13/13 pages statically compiled with 0 errors.
+
+
 

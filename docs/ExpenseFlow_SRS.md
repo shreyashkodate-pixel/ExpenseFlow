@@ -354,6 +354,21 @@ All expense endpoints require `Authorization: Bearer <access_token>` and derive 
 | GET | `/api/v1/analytics/yearly` | Protected | `year=YYYY` | `200` + YearlyAnalytics | Month-by-month spending trends for `current_user.id`. |
 | GET | `/api/v1/analytics/categories` | Protected | `month=MM&year=YYYY` | `200` + List of CategorySpending | Category % distribution for `current_user.id`. |
 
+### 7.6 AI Financial Intelligence & Recommendations (`/api/v1/ai/*`) — Environment-Driven & User-Isolated
+
+The AI subsystem implements a **Provider-Agnostic Adapter Pattern** (`BaseAIProvider`), enabling dynamic switching between Google Gemini, OpenAI (ChatGPT), and Anthropic (Claude) using environment variables (`AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL`) with zero hardcoding.
+
+| Method | Endpoint | Access | Body / Query | Response | Purpose & Security |
+|---|---|---|---|---|---|
+| GET | `/api/v1/ai/recommendations` | Protected | — | `200` + AIRecommendations | Returns structured financial insights (unusual category spikes, actionable monthly savings opportunities, budget pacing alerts, financial health score). Pre-cached per user for 6h. |
+| POST | `/api/v1/ai/recommendations/refresh` | Protected | — | `200` + AIRecommendations | Forces cache invalidation and generates fresh insights. Rate-limited (3 req/min). |
+| POST | `/api/v1/ai/chat` | Protected | Body: `{message: str}` | `200` + AIChatResponse | Natural language financial assistant grounded exclusively in user's anonymized spending aggregates. |
+
+#### AI Privacy & Isolation Rules:
+* User financial metrics are aggregated server-side for `current_user.id` only.
+* No Personally Identifiable Information (PII) such as email, name, or password is ever transmitted to external LLM APIs.
+* In-memory sliding caching prevents redundant LLM billing and latency on frequent dashboard visits.
+
 ---
 
 ## 8. Non-Functional & Security Requirements

@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     SMTP_FROM_NAME: str = "ExpenseFlow"
     SMTP_TLS: bool = True
 
+    # AI Financial Recommendations & Intelligence (Environment-driven)
+    AI_ENABLED: bool = True
+    AI_PROVIDER: str = "gemini"  # "gemini" | "openai" | "claude"
+    AI_API_KEY: Union[str, None] = None
+    AI_MODEL: str = "gemini-3.6-flash"
+    AI_BASE_URL: Union[str, None] = None
+    AI_CACHE_HOURS: int = 6
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
