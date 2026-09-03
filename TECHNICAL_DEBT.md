@@ -72,20 +72,37 @@ This document tracks completed features, system architecture status, operational
 
 ---
 
+### 6. AI Financial Intelligence Suite (`backend/app/services/ai/`, `routers/v1/ai.py`, `frontend/components/ai/`)
+- [x] **Smart Spending Insights & Actionable Saving Tips (Step 1)**: 7-day category surge detection, dynamic 0–100 Financial Health Score, and monthly ₹ saving opportunities.
+- [x] **Predictive Budget Overspending Alerts & Velocity Pacing (Step 2)**: Daily burn rate (₹/day), exact exhaustion calendar date prediction, and safe daily ceiling calculation.
+- [x] **Subscription & Recurring Expense Audit (Step 3)**: 90-day recurring merchant pattern detection (Netflix, Spotify, Gym, Wi-Fi, Rent, SIPs) and monthly overhead quantification.
+- [x] **50/30/20 Budget Optimization Rule (Step 4)**: Automated Needs (50%), Wants (30%), and Savings (20%) mapping with segmented 3-color progress meter and rebalancing advice.
+- [x] **"Ask ExpenseFlow AI" Conversational Assistant (Step 5 Structured RAG)**: Live database facts injection, strict finance-only scope guardrails, 1-click follow-up chips, and global slide-out drawer (`AIChatDrawer.tsx`).
+- [x] **Multi-Provider Adapter Engine**: Unified interface (`BaseAIProvider`) supporting Google Gemini, OpenAI, Anthropic Claude, and local Rule-engine.
+- [x] **Multi-Model Auto-Rotation & Failover**: Automatic rotation across `gemini-3.5-flash`, `gemini-3.7-flash`, and `gemini-3.6-flash` upon 429 quota limits or 503 high-demand spikes.
+- [x] **Intelligent Question-Aware Fallback**: Offline rule engine computing answers dynamically from live database records if external APIs are unreachable.
+- [x] **100% Passing AI Test Suite**: 7/7 AI automated tests passing (`39/39` total backend tests).
+
+---
+
 ## ⚠️ Operational Considerations & Technical Debt
 
-1. **Resend Sandbox vs. Custom Domain (Critical for Production User Signups)**:
+1. **Google Gemini Free-Tier Quota & Multi-Model Failover (Resolved)**:
+   - *Status*: Google Gemini free tier enforces a strict per-model daily quota limit (20 requests/day for preview/flash models).
+   - *Resolution*: Implemented dynamic multi-model rotation in [`backend/app/services/ai/gemini_provider.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai/gemini_provider.py) that seamlessly cycles through `gemini-3.5-flash`, `gemini-3.7-flash`, and `gemini-3.6-flash` when encountering 429, 404, or 503 errors. Additionally, an intelligent local rule engine serves as a fallback to guarantee 100% platform availability with zero generic static responses.
+
+2. **Resend Sandbox vs. Custom Domain (Critical for Production User Signups)**:
    - *Status*: The production setup currently uses `onboarding@resend.dev`.
    - *Limitation*: In Resend's free/sandbox mode, outgoing emails are restricted **strictly** to the account owner's email address. Any registration from an external email address is rejected by Resend with `451: You can only send to your verified email address while in sandbox mode`.
    - *Action Item*: Configure and verify a custom domain (e.g. `expenseflow.app` or user-owned domain) in the Resend dashboard by adding DKIM, SPF, and DMARC DNS records. Once verified, update `SMTP_FROM_EMAIL=noreply@yourdomain.com`.
 
-2. **Render Free Tier Port Block & Resend REST API (Resolved)**:
+3. **Render Free Tier Port Block & Resend REST API (Resolved)**:
    - *Status*: Render Free Tier blocks outbound ports 25, 465, and 587.
-   - *Resolution*: Implemented Resend HTTPS REST API delivery via `httpx` (Port 443) in [`backend/app/services/email_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/email_service.py). Outbound verification codes and welcome emails now bypass SMTP socket restrictions and deliver instantly.
-   - *Follow-up*: For high volume, transition from in-process `BackgroundTasks` to Celery/Redis queue as traffic scales.
+   - *Resolution*: Implemented Resend HTTPS REST API delivery via `httpx` (Port 443) in [`backend/app/services/email_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/email_service.py). Outbound verification codes and welcome emails bypass SMTP socket restrictions.
 
-3. **Frontend Resend Cooldown Timer (Resolved for OTP)**:
-   - *Status*: Completed on [`frontend/app/register/page.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/register/page.tsx) with a responsive 60-second animated cooldown timer and state disabling.
+4. **AI Rate Limiting & Response Caching**:
+   - *Status*: `/api/v1/ai/recommendations` utilizes a 1-hour in-memory cache to prevent redundant LLM API calls.
+   - *Protection*: Rate-limited at 60 req/min for cached reads, 5 req/min for forced re-analysis (`/refresh`), and 15 req/min for conversational chat (`/chat`).
 
 ---
 
@@ -94,11 +111,9 @@ This document tracks completed features, system architecture status, operational
 1. **Multi-Currency Support & Regional Formatting**:
    - Base currency preference selector in `/settings` (INR `₹`, USD `$`, EUR `€`, GBP `£`, CAD `$`, AUD `$`, JPY `¥`).
    - Dynamic locale formatting throughout Dashboard, Expense tables, Budget cards, and PDF exports.
-2. **Recurring Subscriptions & Scheduled Expenses**:
-   - Automated recurring expense tracker for monthly bills (rent, streaming services, utilities).
-   - Upcoming bill alerts on the dashboard.
-3. **Receipt & Invoice OCR Upload**:
-   - Image attachment upload (PNG, JPG, PDF) with optical character recognition to extract total amount and merchant automatically.
-4. **Push Notifications & Budget Alert Thresholds**:
-   - Web push notification alerts when monthly category spending crosses 80% or 100% of budget goals.
+2. **Receipt & Invoice OCR Upload**:
+   - Image attachment upload (PNG, JPG, PDF) with optical character recognition to extract total amount and merchant automatically into expense fields.
+3. **Web Push Notifications**:
+   - Browser push notification alerts when monthly category spending crosses 80% or 100% of budget goals.
+
 

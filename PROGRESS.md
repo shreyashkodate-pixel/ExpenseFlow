@@ -219,6 +219,23 @@ Bootstrapped clean directory structure without clutter:
   - `npx pyright backend`: 0 errors.
   - `npm run build`: 13/13 pages compiled with 0 errors.
 
+---
+
+### 16. AI Resilience, Scope Guardrails & Multi-Model Rotation Engine
+- **Multi-Model Auto-Rotation**:
+  - Enhanced [`backend/app/services/ai/gemini_provider.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai/gemini_provider.py) with automated model failover:
+    - Automatically catches `429` (Quota limits), `503` (High-demand temporary spikes), and `404` errors.
+    - Dynamically falls back across active models: `gemini-3.5-flash`, `gemini-3.7-flash`, and `gemini-3.6-flash`.
+- **Strict Scope Guardrails**:
+  - Configured prompt guardrails and intent validation in [`backend/app/services/ai_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai_service.py) to reject off-topic questions (e.g. coding, trivia, politics) and keep the assistant strictly focused on ExpenseFlow and personal finances.
+- **Intelligent Query-Aware Local Fallback**:
+  - If external LLM APIs are ever unreachable, the fallback engine no longer produces generic static replies; it analyzes the query intent (Food, Shopping, Subscriptions, Budget Pacing, 50/30/20, Top Expense) and dynamically computes accurate answers directly from live database records.
+- **Documentation**:
+  - Created [`AI_Features.md`](file:///Users/apple/Documents/Projects/ExpenseFlow/AI_Features.md) providing high-level summaries, architecture details, and privacy guarantees for all 5 AI features.
+- **Verification**:
+  - Full automated backend test suite: **39/39 tests passing (100%)**.
+
+
 
 
 
