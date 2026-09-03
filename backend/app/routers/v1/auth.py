@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Literal, cast
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from sqlalchemy.orm import Session
 from ...core.config import settings
@@ -27,18 +27,24 @@ from ...services import auth_service, email_service
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication & Session"])
 
+SameSiteType = Literal["lax", "strict", "none"]
+
+
+def _get_cookie_samesite(is_secure: bool) -> SameSiteType:
+    """Determine cookie SameSite policy adapting to production cross-site demands."""
+    raw_samesite = (settings.COOKIE_SAMESITE or "lax").lower().strip()
+    if is_secure and raw_samesite == "lax" and settings.APP_ENV == "production":
+        return "none"
+    if raw_samesite in ("lax", "strict", "none"):
+        return cast(SameSiteType, raw_samesite)
+    return "lax"
+
 
 def _set_refresh_cookie(response: Response, raw_token: str) -> None:
     """Helper to attach the secure HttpOnly refresh token cookie to the response."""
     max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     is_secure = settings.COOKIE_SECURE or (settings.APP_ENV == "production")
-    
-    # In production across different domains (vercel.app <-> onrender.com),
-    # SameSite must be 'none' and Secure must be True for cross-site cookie transmission.
-    # In local development over HTTP, SameSite is 'lax' and Secure is False.
-    samesite = settings.COOKIE_SAMESITE
-    if is_secure and samesite.lower() == "lax" and settings.APP_ENV == "production":
-        samesite = "none"
+    samesite = _get_cookie_samesite(is_secure)
 
     response.set_cookie(
         key="refresh_token",
@@ -55,9 +61,7 @@ def _set_refresh_cookie(response: Response, raw_token: str) -> None:
 def _clear_refresh_cookie(response: Response) -> None:
     """Helper to clear the refresh token cookie upon logout."""
     is_secure = settings.COOKIE_SECURE or (settings.APP_ENV == "production")
-    samesite = settings.COOKIE_SAMESITE
-    if is_secure and samesite.lower() == "lax" and settings.APP_ENV == "production":
-        samesite = "none"
+    samesite = _get_cookie_samesite(is_secure)
 
     response.delete_cookie(
         key="refresh_token",

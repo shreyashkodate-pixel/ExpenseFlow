@@ -196,7 +196,7 @@ def authenticate_google(
     db: Session,
     credential: str,
     request: Optional[Request] = None
-) -> Tuple[User, str, str]:
+) -> Tuple[User, str, str, bool]:
     """
     Validate Google ID Token / OpenID Connect credential server-side via Google's tokeninfo endpoint.
     Handles existing user account linking or creates a new user.
