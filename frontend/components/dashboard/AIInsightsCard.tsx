@@ -1,7 +1,22 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Sparkles, TrendingUp, RotateCw, Lightbulb, PiggyBank, CheckCircle2, AlertTriangle, Flame, ShieldCheck, Clock } from 'lucide-react';
+import {
+  Sparkles,
+  TrendingUp,
+  RotateCw,
+  Lightbulb,
+  PiggyBank,
+  CheckCircle2,
+  AlertTriangle,
+  Flame,
+  ShieldCheck,
+  Clock,
+  Repeat,
+  PieChart,
+  Calendar,
+  Layers,
+} from 'lucide-react';
 import { AIRecommendationResponse } from '../../types/ai';
 import { getAIRecommendations, refreshAIRecommendations } from '../../lib/api/ai';
 import { useToast } from '../ui/toast';
@@ -108,6 +123,8 @@ export function AIInsightsCard() {
   };
 
   const predictiveAlerts = data.predictive_budget_alerts || [];
+  const subscriptionAudit = data.subscription_audit;
+  const budget50 = data.budget_50_30_20;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/20 via-purple-950/10 to-slate-900/40 p-6 shadow-xl backdrop-blur-xl transition-all duration-300 hover:border-indigo-500/30 dark:border-indigo-500/20">
@@ -124,14 +141,14 @@ export function AIInsightsCard() {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-900 dark:text-white text-lg tracking-tight">
-                Smart Spending Insights & Forecast
+                AI Financial Intelligence & Forecast
               </h3>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 AI Powered ({data.provider_used})
               </span>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Personalized tips, category surge analysis, and predictive overspending forecasts
+              Personalized insights, budget forecasting, 50/30/20 allocation & recurring audits
             </p>
           </div>
         </div>
@@ -165,7 +182,7 @@ export function AIInsightsCard() {
         </p>
       </div>
 
-      {/* Predictive Budget Overspending Alerts (Step 2 Feature) */}
+      {/* Step 2: Predictive Budget Overspending Alerts */}
       {predictiveAlerts.length > 0 && (
         <div className="relative z-10 mt-5 space-y-3">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -247,7 +264,130 @@ export function AIInsightsCard() {
         </div>
       )}
 
-      {/* Grid: Detected Spikes & Actionable Saving Tips */}
+      {/* Step 4: 50/30/20 Budget Optimization Section */}
+      {budget50 && budget50.total_evaluated > 0 && (
+        <div className="relative z-10 mt-5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              <PieChart className="h-4 w-4 text-indigo-500" />
+              <span>50/30/20 Budget Optimization Rule</span>
+            </div>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Evaluated: ₹{budget50.total_evaluated.toLocaleString()}
+            </span>
+          </div>
+
+          {/* Segmented Progress Bar */}
+          <div className="space-y-1.5 mb-3">
+            <div className="h-3 w-full rounded-full bg-gray-200 dark:bg-gray-800 flex overflow-hidden">
+              <div
+                className="h-full bg-blue-500 transition-all duration-500"
+                style={{ width: `${budget50.needs_pct}%` }}
+                title={`Needs: ${budget50.needs_pct}%`}
+              ></div>
+              <div
+                className="h-full bg-amber-500 transition-all duration-500"
+                style={{ width: `${budget50.wants_pct}%` }}
+                title={`Wants: ${budget50.wants_pct}%`}
+              ></div>
+              <div
+                className="h-full bg-emerald-500 transition-all duration-500"
+                style={{ width: `${budget50.savings_pct}%` }}
+                title={`Savings: ${budget50.savings_pct}%`}
+              ></div>
+            </div>
+
+            {/* Legend & Breakdown */}
+            <div className="grid grid-cols-3 text-center text-xs gap-2 pt-1">
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2">
+                <span className="block font-semibold text-blue-600 dark:text-blue-400">
+                  Needs: {budget50.needs_pct}%
+                </span>
+                <span className="text-2xs text-gray-500 dark:text-gray-400">
+                  ₹{budget50.needs_spend.toLocaleString()} (Target: 50%)
+                </span>
+              </div>
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2">
+                <span className="block font-semibold text-amber-600 dark:text-amber-400">
+                  Wants: {budget50.wants_pct}%
+                </span>
+                <span className="text-2xs text-gray-500 dark:text-gray-400">
+                  ₹{budget50.wants_spend.toLocaleString()} (Target: 30%)
+                </span>
+              </div>
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2">
+                <span className="block font-semibold text-emerald-600 dark:text-emerald-400">
+                  Savings: {budget50.savings_pct}%
+                </span>
+                <span className="text-2xs text-gray-500 dark:text-gray-400">
+                  ₹{budget50.savings_spend.toLocaleString()} (Target: 20%)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed bg-white/40 dark:bg-gray-900/40 p-2.5 rounded-lg border border-indigo-500/10">
+            💡 {budget50.rebalancing_advice}
+          </p>
+        </div>
+      )}
+
+      {/* Step 3: Subscription & Recurring Commitments Audit */}
+      {subscriptionAudit && (
+        <div className="relative z-10 mt-5 rounded-xl border border-purple-500/20 bg-purple-500/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              <Repeat className="h-4 w-4 text-purple-500" />
+              <span>Subscription & Recurring Expense Audit</span>
+            </div>
+            {subscriptionAudit.subscription_count > 0 && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                ₹{subscriptionAudit.total_monthly_recurring.toLocaleString()}/mo ({subscriptionAudit.subscription_count} active)
+              </span>
+            )}
+          </div>
+
+          {subscriptionAudit.detected_subscriptions.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+              {subscriptionAudit.detected_subscriptions.map((sub, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-lg border border-purple-500/20 bg-white/50 dark:bg-gray-900/50 p-3 flex flex-col justify-between"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <span className="font-semibold text-xs text-gray-900 dark:text-gray-100">
+                      {sub.merchant_or_service}
+                    </span>
+                    <span className="font-mono text-xs font-bold text-purple-600 dark:text-purple-400">
+                      ₹{sub.amount.toLocaleString()}/mo
+                    </span>
+                  </div>
+                  {sub.last_charged_date && (
+                    <span className="text-2xs text-gray-400 mb-1 flex items-center gap-1">
+                      <Calendar className="h-3 w-3" /> Charged: {sub.last_charged_date}
+                    </span>
+                  )}
+                  {sub.optimization_tip && (
+                    <p className="text-2xs text-gray-600 dark:text-gray-300 mt-1 leading-snug">
+                      💡 {sub.optimization_tip}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              {subscriptionAudit.summary_tip}
+            </p>
+          )}
+
+          <p className="text-2xs text-purple-600 dark:text-purple-300 font-medium">
+            {subscriptionAudit.summary_tip}
+          </p>
+        </div>
+      )}
+
+      {/* Grid: Detected Spikes & Actionable Saving Tips (Step 1) */}
       <div className="relative z-10 mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Section 1: Detected Category Surges */}
         <div className="space-y-3">

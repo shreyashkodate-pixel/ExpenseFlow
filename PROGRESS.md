@@ -177,5 +177,48 @@ Bootstrapped clean directory structure without clutter:
   - `npx pyright backend`: 0 errors, 0 warnings.
   - `npm run build`: 13/13 pages compiled with 0 errors.
 
+---
+
+### 13. Subscription & Recurring Expense Audit (Step 3)
+- **Automatic Recurring Detection Engine**:
+  - Implemented `_detect_subscriptions` in [`backend/app/services/ai_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai_service.py) analyzing past 90 days of transactions for subscription patterns (Netflix, Spotify, Gym, Wi-Fi, Rent, Utilities, etc.) and recurring periodicity.
+  - Computes `total_monthly_recurring` overhead and provides cost-cutting optimization recommendations.
+  - Exposes `GET /api/v1/ai/subscriptions` and embeds inside `AIRecommendationResponse`.
+- **UI Dashboard Component**:
+  - Visual recurring commitments audit card on Dashboard displaying detected merchants, monthly costs, last charged dates, and optimization tips.
+- **Automated Verification**:
+  - `backend/tests/test_ai.py::test_subscription_audit_detection`: Passed.
+
+---
+
+### 14. 50/30/20 Budget Framework Optimization (Step 4)
+- **Wealth Allocation Engine**:
+  - Implemented `_calculate_50_30_20` in [`backend/app/services/ai_service.py`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/app/services/ai_service.py) automatically categorizing transactions into **Needs (50%)**, **Wants (30%)**, and **Savings (20%)**.
+  - Generates concrete rebalancing advice with exact ₹ amount needed to trim from discretionary spending to hit target savings.
+  - Exposes `GET /api/v1/ai/50-30-20` and embeds inside `AIRecommendationResponse`.
+- **UI Dashboard Component**:
+  - Segmented 3-color progress meter comparing actual percentage breakdown against 50/30/20 targets with actionable advice banner.
+- **Automated Verification**:
+  - `backend/tests/test_ai.py::test_50_30_20_budget_breakdown`: Passed.
+
+---
+
+### 15. "Ask ExpenseFlow AI" Conversational Assistant (Step 5 Structured RAG)
+- **Structured RAG Architecture**:
+  - Live relational database retrieval grounding answers strictly in user's isolated records (monthly totals, category breakdowns, recent expenses, budget pacing, subscriptions).
+  - Anonymized server-side context with zero PII leakage.
+  - Exposes `POST /api/v1/ai/chat` (rate-limited to 15 req/min).
+- **Frontend Slide-out Chat Drawer**:
+  - Built [`frontend/components/ai/AIChatDrawer.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/components/ai/AIChatDrawer.tsx):
+    - Floating gradient trigger button on bottom-right.
+    - Slide-out assistant drawer with clean markdown rendering, conversation history, referenced database data point pills, typing indicator, and 1-click follow-up question chips.
+    - Mounted globally in [`frontend/app/layout.tsx`](file:///Users/apple/Documents/Projects/ExpenseFlow/frontend/app/layout.tsx).
+- **Automated Verification**:
+  - `backend/tests/test_ai.py::test_conversational_chat_rag`: Passed.
+  - All 7/7 AI tests passed.
+  - `npx pyright backend`: 0 errors.
+  - `npm run build`: 13/13 pages compiled with 0 errors.
+
+
 
 

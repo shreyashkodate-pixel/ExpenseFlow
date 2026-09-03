@@ -8,6 +8,7 @@ import { PWAProvider } from '../components/shared/PWAInstall';
 import { AuthProvider } from '../context/AuthContext';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { AppShell } from '../components/shared/AppShell';
+import { AIChatDrawer } from '../components/ai/AIChatDrawer';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -57,6 +58,7 @@ export default function RootLayout({
                   <AppShell>
                     {children}
                   </AppShell>
+                  <AIChatDrawer />
                 </ProtectedRoute>
               </ToastProvider>
             </AuthProvider>
