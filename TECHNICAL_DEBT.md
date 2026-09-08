@@ -1,6 +1,6 @@
 # ExpenseFlow — Pending Work & Technical Roadmap
 
-**Last Updated:** September 3, 2026
+**Last Updated:** September 8, 2026
 
 This document tracks completed features, system architecture status, operational considerations, and technical roadmap items for ExpenseFlow.
 
@@ -10,11 +10,12 @@ This document tracks completed features, system architecture status, operational
 
 ### 1. Backend Core & Database (`backend/app/core/`, `models/`, `seed/`, `alembic/`)
 - [x] Configured environment variables via `pydantic-settings` (`DATABASE_URL`, `CORS_ORIGINS`, `API_V1_PREFIX`, `JWT_SECRET_KEY`, `COOKIE_SECURE`, `GOOGLE_CLIENT_ID`, `SMTP_*`, `FRONTEND_URL`).
-- [x] Implemented SQLAlchemy engine, declarative models (`User`, `RefreshToken`, `PasswordResetToken`, `EmailVerificationToken`, `Category`, `Expense`, `Budget`), and session dependencies.
+- [x] Implemented SQLAlchemy engine, declarative models (`User`, `RefreshToken`, `PasswordResetToken`, `EmailVerificationToken`, `EmailVerificationOtp`, `Category`, `Expense`, `Budget`), and session dependencies.
 - [x] Executed Alembic database migrations:
   - `48cef29c36e8_initial_schema`
   - `7a8e9f1b2c3d_auth_and_user_isolation`
   - `8b9f0e2a3c4d_email_verification_tokens`
+  - `9c1a2b3d4e5f_email_verification_otps`
 - [x] Configured PostgreSQL production database with connection pooling and idempotent category seeding.
 
 ---
@@ -85,6 +86,18 @@ This document tracks completed features, system architecture status, operational
 
 ---
 
+### 7. Android Native Application (Kotlin + Jetpack Compose) (`android/`)
+- [x] **Zero Android Studio / Headless CLI Pipeline**: Setup with Android SDK 34 command-line tools, AGP 8.5.2, and Gradle 8.9 wrapper.
+- [x] **Dark Glassmorphism UI System**: Color tokens, typography, custom components (`GlassCard`, `PrimaryButton`, `ExpenseInputField`, `StatusBadge`).
+- [x] **Hardware Keystore & Full Auth**: EncryptedSharedPreferences (`SessionManager`), silent 401 token refresh (`TokenAuthenticator`), and 4-step OTP registration.
+- [x] **Offline Room Database & Sync**: `ExpenseFlowDatabase`, `ExpenseDao`, `CategoryDao`, and background sync with FastAPI PostgreSQL backend.
+- [x] **Expense Tracking & Exports**: CRUD, search, filter, payment method selector, and DownloadManager-streamed PDF/CSV export.
+- [x] **Budgets & Analytics**: Real-time pacing progress indicators, category limits, and interactive spending trend charts.
+- [x] **Full AI Financial Intelligence Suite**: 0–100 Health Score, predictive budget alerts, subscription audits, 50/30/20 meter, and slide-up RAG conversational assistant drawer.
+- [x] **Verification & Packaging**: 100% passing unit test suite, debug APK generation (18.3 MB), and physical device deployment via ADB.
+
+---
+
 ## ⚠️ Operational Considerations & Technical Debt
 
 1. **Google Gemini Free-Tier Quota & Multi-Model Failover (Resolved)**:
@@ -104,6 +117,11 @@ This document tracks completed features, system architecture status, operational
    - *Status*: `/api/v1/ai/recommendations` utilizes a 1-hour in-memory cache to prevent redundant LLM API calls.
    - *Protection*: Rate-limited at 60 req/min for cached reads, 5 req/min for forced re-analysis (`/refresh`), and 15 req/min for conversational chat (`/chat`).
 
+5. **Android Headless CLI & Hilt ASM Bytecode Cache**:
+   - *Status*: Compilation and packaging operate completely via command-line tools without Android Studio.
+   - *Consideration*: When introducing or refactoring `@HiltViewModel` or Hilt `@InstallIn` modules, AGP's incremental ASM transform (`transformDebugClassesWithAsm`) may retain duplicate cached bytecode.
+   - *Resolution*: Always run `./gradlew clean assembleDebug` when modifying Hilt classes to guarantee deterministic, duplicate-free dexing.
+
 ---
 
 ## 🚀 Upcoming Enhancements (V2.1 Roadmap)
@@ -115,5 +133,10 @@ This document tracks completed features, system architecture status, operational
    - Image attachment upload (PNG, JPG, PDF) with optical character recognition to extract total amount and merchant automatically into expense fields.
 3. **Web Push Notifications**:
    - Browser push notification alerts when monthly category spending crosses 80% or 100% of budget goals.
+4. **Android Native Biometric Authentication (Fingerprint / Face Unlock)**:
+   - Integrate `androidx.biometric:biometric` for quick local biometric sign-in using Android Keystore keys.
+5. **Android Native Receipt Camera Scanner**:
+   - Integrate CameraX and ML Kit Vision for 1-tap real-time receipt scanning and automatic expense entry.
+
 
 

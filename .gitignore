@@ -27,3 +27,12 @@ Thumbs.db
 .postman/
 docs/.postman/
 docs/postman/
+
+# Android Build Outputs & Local Config
+android/.gradle/
+android/.kotlin/
+android/local.properties
+android/build/
+android/app/build/
+*.apk
+*.aab

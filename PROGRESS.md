@@ -1,6 +1,7 @@
 # ExpenseFlow — Progress Log
 
-**Last Updated:** September 3, 2026
+**Last Updated:** September 8, 2026
+
 
 ---
 
@@ -234,6 +235,57 @@ Bootstrapped clean directory structure without clutter:
   - Created [`AI_Features.md`](file:///Users/apple/Documents/Projects/ExpenseFlow/AI_Features.md) providing high-level summaries, architecture details, and privacy guarantees for all 5 AI features.
 - **Verification**:
   - Full automated backend test suite: **39/39 tests passing (100%)**.
+
+---
+
+### 17. Production Deployment Preparation & Registration Email Verification Audit
+- **Render Cloud Configuration**:
+  - Verified environment template for Render deployment, including multi-provider AI keys (`AI_ENABLED`, `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `AI_CACHE_HOURS`).
+  - Validated container initialization sequence in [`backend/Dockerfile`](file:///Users/apple/Documents/Projects/ExpenseFlow/backend/Dockerfile): `alembic upgrade head && uvicorn app.main:app` automatically executes the OTP registration migration (`9c1a2b3d4e5f_email_verification_otps`).
+- **Registration Email Sequence Audit**:
+  - Verified dual-email workflow:
+    1. **Step 1 & 2**: 6-digit OTP verification email dispatched via `/api/v1/auth/register/send-otp` (10-minute expiry, SHA-256 hashed, 5-attempt rate lock).
+    2. **Step 3 & 4**: Branded welcome onboarding email dispatched via `/api/v1/auth/register/complete` upon user profile insertion.
+  - Documented Resend API delivery over HTTPS Port 443 (auto-detected when `SMTP_PASSWORD` starts with `re_`) to avoid Render free-tier SMTP socket blocking.
+---
+
+### 18. Android Native Application (Kotlin + Jetpack Compose)
+- **Zero Android Studio / CLI Architecture**:
+  - Full Android Native development, dependency injection, and APK compilation managed 100% via Android command-line tools (`platform-tools`, `build-tools 34.0.0`) and Gradle 8.9 wrapper.
+  - Dual-client architecture: Android application lives in `android/` while preserving the existing Next.js web application (`frontend/`) and FastAPI backend (`backend/`).
+- **Phase 1 — Scaffolding & Build System**:
+  - Configured AGP 8.5.2, Kotlin 2.0.20, Jetpack Compose BOM 2024.06.00, Hilt 2.51.1, Room 2.6.1, Retrofit 2.11.0, and OkHttp 4.12.0.
+  - Dynamic `BuildConfig.BASE_URL` with environment overrides.
+- **Phase 2 — Dark Glassmorphism Design System**:
+  - Ported modern web theme into native Compose: `BackgroundDark` (`#090D16`), `SurfaceDark` (`#111827`), `PrimaryViolet` (`#8B5CF6`), `AccentEmerald` (`#10B981`), `WarningAmber` (`#F59E0B`), `ErrorRose` (`#F43F5E`).
+  - Reusable components: `GlassCard`, `PrimaryButton`, `ExpenseInputField`, `StatusBadge`, `LoadingIndicator`.
+- **Phase 3 — Hardware Keystore Security & 4-Step OTP Auth Flow**:
+  - Hardware-backed token encryption via `EncryptedSharedPreferences` (`SessionManager.kt`).
+  - Dual-interceptor networking: `AuthInterceptor` (Bearer token) and `TokenAuthenticator` (automatic 401 token refresh retry).
+  - 4-step OTP registration wizard (`RegisterScreen.kt`, `RegisterViewModel.kt`) with 6-digit box layout and 60-second cooldown timer.
+- **Phase 4 — Expense Management & Offline Room SQLite Persistence**:
+  - Room persistence (`ExpenseEntity`, `CategoryEntity`, `ExpenseDao`, `CategoryDao`, `ExpenseFlowDatabase`).
+  - Full CRUD expense tracking with dynamic categories, payment method selector (`UPI`, `GPay`, `Cash`, `Card`, `Transfer`), and live search/filter.
+  - Server-side PDF and CSV report streaming to Android device *Downloads* folder via `DownloadManager`.
+- **Phase 5 — Budgets, Pacing Radar & Interactive Analytics Charts**:
+  - Budget pacing overview with real-time percentage consumption and status levels (`ok`, `warning`, `exceeded`).
+  - Set budget dialog with dynamic category allocation.
+  - Interactive daily spending trend bar charts and category distribution percentage breakdown.
+  - 4-tab bottom navigation (`Home`, `Expenses`, `Budgets`, `Analytics`).
+- **Phase 6 — Full AI Financial Intelligence Suite**:
+  - Multi-feature AI engine integration (`AIApi`, `AIRepository`, `AIViewModel`):
+    - 0–100 Financial Health Score badge and AI summary headline.
+    - Detected 7-day category spending surges.
+    - Predictive Budget Overspending Alerts with daily burn rate (₹/day), safe daily spending ceiling, and forecasted exhaustion date.
+    - 90-day Recurring Subscriptions Audit summary.
+    - 50/30/20 Wealth Allocation segmented progress meter with rebalancing guidance.
+  - Interactive `AIChatBottomSheet` conversational assistant drawer with live database fact grounding, data pills, and 1-click follow-up prompt chips.
+- **Phase 7 — Verification, Packaging & Deployment**:
+  - Automated unit test suite passing (`testDebugUnitTest` 100% clean).
+  - Signed debug APK generated: `android/app/build/outputs/apk/debug/app-debug.apk` (18.3 MB).
+  - Successfully deployed, installed, and launched on connected OnePlus physical Android device via USB ADB.
+
+
 
 
 
