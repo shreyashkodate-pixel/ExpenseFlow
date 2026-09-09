@@ -1,6 +1,7 @@
 # ExpenseFlow — Pending Work & Technical Roadmap
 
-**Last Updated:** September 8, 2026
+**Last Updated:** September 9, 2026
+
 
 This document tracks completed features, system architecture status, operational considerations, and technical roadmap items for ExpenseFlow.
 
@@ -88,13 +89,15 @@ This document tracks completed features, system architecture status, operational
 
 ### 7. Android Native Application (Kotlin + Jetpack Compose) (`android/`)
 - [x] **Zero Android Studio / Headless CLI Pipeline**: Setup with Android SDK 34 command-line tools, AGP 8.5.2, and Gradle 8.9 wrapper.
-- [x] **Dark Glassmorphism UI System**: Color tokens, typography, custom components (`GlassCard`, `PrimaryButton`, `ExpenseInputField`, `StatusBadge`).
+- [x] **Dark Glassmorphism & Stitch Design Tokens**: Extracted tokens from Stitch MCP (`projects/9139883465283651921`) and `Design.md`: `BrandNavy`, `BrandIceBlue`, `BrandEmerald`, `PrimaryContainer`, `SurfaceContainerLow`, `Plus Jakarta Sans` & `Inter` Google Fonts.
 - [x] **Hardware Keystore & Full Auth**: EncryptedSharedPreferences (`SessionManager`), silent 401 token refresh (`TokenAuthenticator`), and 4-step OTP registration.
 - [x] **Offline Room Database & Sync**: `ExpenseFlowDatabase`, `ExpenseDao`, `CategoryDao`, and background sync with FastAPI PostgreSQL backend.
-- [x] **Expense Tracking & Exports**: CRUD, search, filter, payment method selector, and DownloadManager-streamed PDF/CSV export.
-- [x] **Budgets & Analytics**: Real-time pacing progress indicators, category limits, and interactive spending trend charts.
-- [x] **Full AI Financial Intelligence Suite**: 0–100 Health Score, predictive budget alerts, subscription audits, 50/30/20 meter, and slide-up RAG conversational assistant drawer.
-- [x] **Verification & Packaging**: 100% passing unit test suite, debug APK generation (18.3 MB), and physical device deployment via ADB.
+- [x] **Expense Tracking & Exports**: CRUD, search, horizontal filter chips, payment method selector, and DownloadManager-streamed PDF/CSV export.
+- [x] **Budgets & Pacing Radar**: Month carousel picker, overall budget card with progress meter, daily safe ceiling calculation, proactive AI warning card, and dynamic `+ Set Target` modal sheet.
+- [x] **Full AI Financial Intelligence Suite**: Standalone top-level tab (`AIAdvisorScreen.kt`) with Gemini RAG badge, Financial Wellness Index arc gauge (78/100), 50/30/20 wealth allocation card, subscription audit chips, and conversational intelligence chat thread.
+- [x] **Interactive Analytics**: 14-day spending trend bar chart with active bar tap selection and category spend distribution.
+- [x] **5-Tab Navigation & Theme Switching**: Instantaneous in-app Light/Dark mode toggling from avatar profile menu, 5-item bottom nav with pill indicator, and 56×56 squircle Quick Log FAB.
+- [x] **Physical Device Verification & Release**: Verified live on OnePlus (`d0b1cb4c`), 100% passing unit test suite (31/31 tests), and pushed to `origin/feat/android-native-app`.
 
 ---
 
@@ -121,6 +124,18 @@ This document tracks completed features, system architecture status, operational
    - *Status*: Compilation and packaging operate completely via command-line tools without Android Studio.
    - *Consideration*: When introducing or refactoring `@HiltViewModel` or Hilt `@InstallIn` modules, AGP's incremental ASM transform (`transformDebugClassesWithAsm`) may retain duplicate cached bytecode.
    - *Resolution*: Always run `./gradlew clean assembleDebug` when modifying Hilt classes to guarantee deterministic, duplicate-free dexing.
+
+6. **Jetpack Compose Bar Chart Column Layout Weighting (Resolved)**:
+   - *Status*: Applying `.fillMaxHeight(fraction)` inside a `Column` that also has `.fillMaxHeight()` pushes adjacent sibling elements (`Spacer`, `Text`) off-screen when `fraction == 1.0f`.
+   - *Resolution*: Wrap the bar element in `Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter)` so the parent column preserves guaranteed space for date labels and spacing.
+
+7. **Dark Mode Dynamic Surface Luminance (Resolved)**:
+   - *Status*: Hardcoding light container tokens (`SurfaceContainerLow` `#F1F4FA`) in dark mode components creates white-on-white text clipping and low-contrast boxes.
+   - *Resolution*: Use semantic `MaterialTheme.colorScheme.surfaceVariant` or luminance-based tint branching (`MaterialTheme.colorScheme.surface.luminance() < 0.5f`) across all reusable card and sheet containers.
+
+8. **USB ADB Soft Keyboard vs Bottom Sheet Dismissal**:
+   - *Status*: In Android 14/15, issuing `adb shell input keyevent 4` (Back) directly dismisses the active `ModalBottomSheet` rather than closing only the IME soft keyboard.
+   - *Resolution*: Use `adb shell input keyevent 111` (Escape) or tap the IME collapse chevron at coordinate `(95, 2365)` to cleanly dismiss the soft keyboard without affecting sheet visibility.
 
 ---
 
