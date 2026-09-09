@@ -57,7 +57,9 @@ object Destinations {
 fun ExpenseFlowNavGraph(
     navController: NavHostController = rememberNavController(),
     sessionManager: SessionManager,
-    authRepository: AuthRepository
+    authRepository: AuthRepository,
+    isDarkTheme: Boolean = true,
+    onToggleTheme: () -> Unit = {}
 ) {
     val isLoggedIn by sessionManager.isLoggedIn.collectAsState()
     val startDestination = if (isLoggedIn) Destinations.MAIN else Destinations.LOGIN
@@ -126,6 +128,8 @@ fun ExpenseFlowNavGraph(
         composable(Destinations.MAIN) {
             com.expenseflow.app.presentation.main.MainScreen(
                 authRepository = authRepository,
+                isDarkTheme = isDarkTheme,
+                onToggleTheme = onToggleTheme,
                 onLogout = {
                     navController.navigate(Destinations.LOGIN) {
                         popUpTo(Destinations.MAIN) { inclusive = true }

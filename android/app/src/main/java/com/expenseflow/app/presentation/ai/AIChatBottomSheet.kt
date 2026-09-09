@@ -90,7 +90,7 @@ fun AIChatBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = BackgroundDark,
+        containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -98,7 +98,7 @@ fun AIChatBottomSheet(
                     .width(40.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Color.White.copy(alpha = 0.2f))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
             )
         },
         modifier = Modifier.fillMaxHeight(0.92f)

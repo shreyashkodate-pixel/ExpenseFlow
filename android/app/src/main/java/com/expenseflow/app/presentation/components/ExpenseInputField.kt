@@ -66,16 +66,16 @@ fun ExpenseInputField(
             trailingIcon = trailingIcon,
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = SurfaceDark,
-                unfocusedContainerColor = SurfaceDark,
-                disabledContainerColor = SurfaceDark,
-                errorContainerColor = SurfaceDark,
-                focusedBorderColor = PrimaryViolet,
-                unfocusedBorderColor = BorderDark,
-                errorBorderColor = ErrorRose,
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary,
-                cursorColor = PrimaryViolet
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                errorContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                errorBorderColor = MaterialTheme.colorScheme.error,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary
             )
         )
         if (isError && errorMessage != null) {

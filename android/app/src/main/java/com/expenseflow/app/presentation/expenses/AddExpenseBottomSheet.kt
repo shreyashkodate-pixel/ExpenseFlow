@@ -40,7 +40,7 @@ import com.expenseflow.app.presentation.components.ExpenseInputField
 import com.expenseflow.app.presentation.components.PrimaryButton
 import com.expenseflow.app.ui.theme.BorderDark
 import com.expenseflow.app.ui.theme.ErrorRose
-import com.expenseflow.app.ui.theme.PrimaryViolet
+import com.expenseflow.app.ui.theme.PrimaryContainer
 import com.expenseflow.app.ui.theme.SurfaceCard
 import com.expenseflow.app.ui.theme.SurfaceDark
 import com.expenseflow.app.ui.theme.TextMuted
@@ -77,7 +77,7 @@ fun AddExpenseBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = SurfaceDark
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
@@ -88,7 +88,7 @@ fun AddExpenseBottomSheet(
             Text(
                 text = "Add New Expense",
                 style = MaterialTheme.typography.headlineSmall,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
             )
 
@@ -127,11 +127,11 @@ fun AddExpenseBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Category Chips Selector
+            // Category Chips Selector (Design.md Pill Chips)
             Text(
                 text = "Category",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -146,13 +146,13 @@ fun AddExpenseBottomSheet(
                     Box(
                         modifier = Modifier
                             .background(
-                                if (isSelected) PrimaryViolet else SurfaceCard,
-                                shape = RoundedCornerShape(12.dp)
+                                if (isSelected) PrimaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(20.dp)
                             )
                             .border(
                                 1.dp,
-                                if (isSelected) PrimaryViolet else BorderDark,
-                                shape = RoundedCornerShape(12.dp)
+                                if (isSelected) PrimaryContainer else MaterialTheme.colorScheme.outlineVariant,
+                                shape = RoundedCornerShape(20.dp)
                             )
                             .clickable { selectedCategoryId = category.id }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -160,7 +160,8 @@ fun AddExpenseBottomSheet(
                         Text(
                             text = category.name,
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (isSelected) Color.White else TextPrimary
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )
                     }
                 }
@@ -168,11 +169,11 @@ fun AddExpenseBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Payment Method Selector
+            // Payment Method Selector (Design.md Pill Chips)
             Text(
                 text = "Payment Method",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -187,13 +188,13 @@ fun AddExpenseBottomSheet(
                     Box(
                         modifier = Modifier
                             .background(
-                                if (isSelected) PrimaryViolet else SurfaceCard,
-                                shape = RoundedCornerShape(12.dp)
+                                if (isSelected) PrimaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(20.dp)
                             )
                             .border(
                                 1.dp,
-                                if (isSelected) PrimaryViolet else BorderDark,
-                                shape = RoundedCornerShape(12.dp)
+                                if (isSelected) PrimaryContainer else MaterialTheme.colorScheme.outlineVariant,
+                                shape = RoundedCornerShape(20.dp)
                             )
                             .clickable { selectedPaymentMethod = method }
                             .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -201,7 +202,8 @@ fun AddExpenseBottomSheet(
                         Text(
                             text = method,
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (isSelected) Color.White else TextSecondary
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )
                     }
                 }

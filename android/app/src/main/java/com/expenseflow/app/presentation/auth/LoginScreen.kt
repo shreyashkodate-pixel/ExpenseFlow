@@ -77,7 +77,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -89,14 +89,14 @@ fun LoginScreen(
         Text(
             text = "ExpenseFlow",
             style = MaterialTheme.typography.displayMedium,
-            color = PrimaryViolet,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = "Sign in to manage your finances & AI insights",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -105,7 +105,7 @@ fun LoginScreen(
         if (uiState.successMessage != null) {
             GlassCard(
                 borderColor = AccentEmerald,
-                backgroundColor = BackgroundDark,
+                backgroundColor = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

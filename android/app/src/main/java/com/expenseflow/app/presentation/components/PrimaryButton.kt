@@ -21,8 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.expenseflow.app.ui.theme.PrimaryViolet
-import com.expenseflow.app.ui.theme.PrimaryVioletDark
+import com.expenseflow.app.ui.theme.PrimaryContainer
 import com.expenseflow.app.ui.theme.TextOnPrimary
 
 @Composable
@@ -34,7 +33,7 @@ fun PrimaryButton(
     enabled: Boolean = true,
     leadingIcon: (@Composable () -> Unit)? = null,
     gradient: Brush = Brush.horizontalGradient(
-        colors = listOf(PrimaryViolet, PrimaryVioletDark)
+        colors = listOf(Color(0xFF0F172A), PrimaryContainer)
     )
 ) {
     Button(

@@ -71,7 +71,9 @@ fun AIInsightsCard(
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        backgroundColor = Color(0xFF13192B)
+        shape = RoundedCornerShape(24.dp),
+        backgroundColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header Bar
@@ -104,7 +106,7 @@ fun AIInsightsCard(
                         Text(
                             text = "AI Financial Intelligence",
                             style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -185,7 +187,7 @@ fun AIInsightsCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF0F1524))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -195,7 +197,7 @@ fun AIInsightsCard(
                             Text(
                                 text = "HEALTH SCORE",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextMuted,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -213,7 +215,7 @@ fun AIInsightsCard(
                         Text(
                             text = recommendations.headline,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -280,7 +282,7 @@ fun AIInsightsCard(
                                     },
                                     shape = RoundedCornerShape(10.dp)
                                 )
-                                .background(Color(0xFF0F172A))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(12.dp)
                         ) {
                             Column {
@@ -304,7 +306,7 @@ fun AIInsightsCard(
                                         Text(
                                             text = "${alert.category} Budget",
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = TextPrimary,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -321,7 +323,7 @@ fun AIInsightsCard(
                                 Text(
                                     text = alert.alertMessage,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(
@@ -364,7 +366,7 @@ fun AIInsightsCard(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF1E172E))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                                     .border(1.dp, PrimaryViolet.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
@@ -379,7 +381,7 @@ fun AIInsightsCard(
                                     Text(
                                         text = "${spike.category}: ${spike.surgePercentage?.toInt() ?: "+"}% surge",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = TextPrimary,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
@@ -494,7 +496,7 @@ fun AIInsightsCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFF141E33))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -509,13 +511,13 @@ fun AIInsightsCard(
                                 Text(
                                     text = "${sub.subscriptionCount} Subscriptions Active",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = TextPrimary,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = "${currencyFormatter.format(sub.totalMonthlyRecurring)}/month overhead: ${sub.summaryTip}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -541,7 +543,7 @@ fun AIInsightsCard(
                                 .fillMaxWidth()
                                 .padding(vertical = 3.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF0F1524))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(10.dp),
                             verticalAlignment = Alignment.Top
                         ) {
@@ -560,7 +562,7 @@ fun AIInsightsCard(
                                     Text(
                                         text = tip.title,
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = TextPrimary,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         fontWeight = FontWeight.Bold
                                     )
                                     tip.estimatedMonthlySavings?.let { savings ->

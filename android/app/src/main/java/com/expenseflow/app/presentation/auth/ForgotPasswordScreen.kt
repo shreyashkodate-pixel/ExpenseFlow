@@ -60,7 +60,7 @@ fun ForgotPasswordScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
@@ -72,31 +72,35 @@ fun ForgotPasswordScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = TextPrimary
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
             Text(
                 text = "Back to Sign In",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.clickable { onNavigateBack() }
             )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            backgroundColor = MaterialTheme.colorScheme.surface,
+            borderColor = MaterialTheme.colorScheme.outlineVariant
+        ) {
             Column {
                 Text(
                     text = "Reset Password",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Enter your registered email address to receive password recovery instructions.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -104,7 +108,7 @@ fun ForgotPasswordScreen(
                 if (successMessage != null) {
                     GlassCard(
                         borderColor = AccentEmerald,
-                        backgroundColor = BackgroundDark,
+                        backgroundColor = MaterialTheme.colorScheme.surface,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column {

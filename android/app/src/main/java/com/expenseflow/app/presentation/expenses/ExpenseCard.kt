@@ -11,10 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,20 +21,33 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.expenseflow.app.data.local.room.ExpenseEntity
 import com.expenseflow.app.presentation.components.BadgeStatus
 import com.expenseflow.app.presentation.components.GlassCard
 import com.expenseflow.app.presentation.components.StatusBadge
-import com.expenseflow.app.ui.theme.BorderSubtle
-import com.expenseflow.app.ui.theme.ErrorRose
-import com.expenseflow.app.ui.theme.PrimaryViolet
-import com.expenseflow.app.ui.theme.SurfaceElevatedDark
-import com.expenseflow.app.ui.theme.TextMuted
-import com.expenseflow.app.ui.theme.TextPrimary
-import com.expenseflow.app.ui.theme.TextSecondary
+import com.expenseflow.app.ui.theme.AmountMetricStyle
+import com.expenseflow.app.ui.theme.CategoryBillsBg
+import com.expenseflow.app.ui.theme.CategoryBillsText
+import com.expenseflow.app.ui.theme.CategoryEducationBg
+import com.expenseflow.app.ui.theme.CategoryEducationText
+import com.expenseflow.app.ui.theme.CategoryEntertainmentBg
+import com.expenseflow.app.ui.theme.CategoryEntertainmentText
+import com.expenseflow.app.ui.theme.CategoryFoodBg
+import com.expenseflow.app.ui.theme.CategoryFoodText
+import com.expenseflow.app.ui.theme.CategoryHealthBg
+import com.expenseflow.app.ui.theme.CategoryHealthText
+import com.expenseflow.app.ui.theme.CategoryOtherBg
+import com.expenseflow.app.ui.theme.CategoryOtherText
+import com.expenseflow.app.ui.theme.CategoryRentBg
+import com.expenseflow.app.ui.theme.CategoryRentText
+import com.expenseflow.app.ui.theme.CategoryShoppingBg
+import com.expenseflow.app.ui.theme.CategoryShoppingText
+import com.expenseflow.app.ui.theme.CategoryTransportBg
+import com.expenseflow.app.ui.theme.CategoryTransportText
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -52,10 +64,24 @@ fun ExpenseCard(
         "₹ ${"%.2f".format(expense.amount)}"
     }
 
+    val (categoryBg, categoryTextColor) = when (expense.categoryName.lowercase()) {
+        "food", "dining", "groceries" -> CategoryFoodBg to CategoryFoodText
+        "transport", "transit", "fuel" -> CategoryTransportBg to CategoryTransportText
+        "shopping", "clothing" -> CategoryShoppingBg to CategoryShoppingText
+        "bills", "utilities" -> CategoryBillsBg to CategoryBillsText
+        "rent", "housing" -> CategoryRentBg to CategoryRentText
+        "entertainment", "leisure" -> CategoryEntertainmentBg to CategoryEntertainmentText
+        "health", "medical" -> CategoryHealthBg to CategoryHealthText
+        "education" -> CategoryEducationBg to CategoryEducationText
+        else -> CategoryOtherBg to CategoryOtherText
+    }
+
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        backgroundColor = SurfaceElevatedDark,
-        borderColor = BorderSubtle
+        shape = RoundedCornerShape(16.dp),
+        backgroundColor = MaterialTheme.colorScheme.surface,
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
+        contentPadding = 14.dp
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -66,39 +92,47 @@ fun ExpenseCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Category Avatar Pill
+                // 40x40 rounded-xl category pastel icon container (Design.md)
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
-                        .background(Color(0x228B5CF6), shape = CircleShape),
+                        .size(42.dp)
+                        .background(categoryBg, shape = RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = expense.categoryName.take(1).uppercase(),
                         style = MaterialTheme.typography.titleMedium,
-                        color = PrimaryViolet,
+                        color = categoryTextColor,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 6.dp)
+                ) {
                     Text(
                         text = expense.description,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         StatusBadge(
                             text = expense.categoryName,
                             status = BadgeStatus.INFO,
                             showDot = false
                         )
                         if (!expense.paymentMethod.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.width(6.dp))
                             StatusBadge(
                                 text = expense.paymentMethod,
                                 status = BadgeStatus.NEUTRAL,
@@ -110,17 +144,19 @@ fun ExpenseCard(
                     Text(
                         text = expense.date,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Amount and Delete
+            // Amount with tabular numerical figures and delete
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "- $formattedAmount",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = ErrorRose,
+                    style = AmountMetricStyle.copy(
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.tertiary
+                    ),
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.width(4.dp))
@@ -131,7 +167,7 @@ fun ExpenseCard(
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete expense",
-                        tint = TextMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(18.dp)
                     )
                 }

@@ -83,7 +83,7 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -95,14 +95,14 @@ fun RegisterScreen(
         Text(
             text = "ExpenseFlow",
             style = MaterialTheme.typography.displayMedium,
-            color = PrimaryViolet,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = "Create your secure account",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(28.dp))
